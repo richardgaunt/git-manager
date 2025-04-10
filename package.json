@@ -1,0 +1,20 @@
+{
+  "name": "git-manager",
+  "version": "1.0.0",
+  "description": "A command-line tool for managing git operations",
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "git-manager": "./index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "inquirer": "^9.2.7",
+    "chalk": "^5.2.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
