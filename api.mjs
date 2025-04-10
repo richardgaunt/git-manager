@@ -222,3 +222,51 @@ export function toKebabCase(text) {
       .replace(/[^\w\s-]/g, '') // Remove special characters except hyphen
       .replace(/[\s_]+/g, '-'); // Replace spaces and underscores with hyphens
 }
+
+/**
+ * Check if a branch exists on the remote
+ * @param {string} branchName Name of the branch to check
+ * @returns {boolean} True if the branch exists on the remote
+ */
+export function checkIfRemoteBranchExists(branchName) {
+  try {
+    const result = execSync(`git ls-remote --heads origin ${branchName}`, { encoding: 'utf8' });
+    return result.trim() !== '';
+  } catch (error) {
+    // If there's an error, assume the branch doesn't exist remotely
+    return false;
+  }
+}
+
+/**
+ * Get all branches (both local and remote)
+ * @returns {string[]} Array of branch names
+ */
+export function getAllBranches() {
+  try {
+    // Get all branches (both local and remote)
+    const output = execSync('git branch -a', { encoding: 'utf8' });
+
+    // Parse branch names and remove duplicates
+    return output
+        .split('\n')
+        .filter(Boolean)
+        .map(branch => branch.replace(/^\*?\s*remotes\/origin\//, '').replace(/^\*?\s*/, '').trim())
+        .filter(branch => !branch.includes('HEAD ->') && !branch.includes('/HEAD')) // Remove HEAD pointers
+        .filter((branch, index, self) => self.indexOf(branch) === index); // Remove duplicates
+  } catch (error) {
+    throw new Error('Failed to get branches: ' + error.message);
+  }
+}
+
+/**
+ * Pull latest changes from remote for current branch
+ * @returns {string} Command output
+ */
+export function pullLatestChanges() {
+  try {
+    return execSync('git pull --rebase', { encoding: 'utf8' });
+  } catch (error) {
+    throw new Error('Failed to pull latest changes: ' + error.message);
+  }
+}

@@ -55,6 +55,7 @@ async function showInteractiveMenu() {
   // Define menu options
   const menuOptions = [
     { name: 'List all branches', value: 'list-branches' },
+    { name: 'Checkout branch', value: 'checkout-branch'},
     { name: 'Delete local branches', value: 'delete-branches' },
     { name: 'Create feature branch', value: 'create-feature'},
     { name: 'Exit', value: 'exit' }
@@ -77,8 +78,11 @@ async function showInteractiveMenu() {
       case 'list-branches':
         await commands.branches.listBranches();
         break;
+      case 'checkout-branch':
+        await commands.branches.checkoutBranchAndUpdate();
+        break;
       case 'delete-branches':
-        await commands.branches.deleteBranches();
+        await commands.branches.branches();
         break;
       case 'create-feature':
         await commands.feature.createFeatureBranch()

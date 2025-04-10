@@ -1,6 +1,6 @@
 // commands/index.mjs
 
-import * as branches from './delete-branches.mjs';
+import * as branches from './branches.mjs';
 import * as feature from './feature-branch.mjs';
 
 // Export all commands
@@ -20,10 +20,17 @@ export function registerCommands(program) {
     });
 
   program
+    .command('checkout-branch')
+    .description('Checkout a branch')
+    .action(async () => {
+      await branches.checkoutBranchAndUpdate();
+    });
+
+  program
     .command('delete-branches')
     .description('Delete local branches')
     .action(async () => {
-      await branches.deleteBranches();
+      await branches.branches();
     });
 
   program
