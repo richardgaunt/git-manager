@@ -1,6 +1,7 @@
 // commands/branches.mjs
 
 import inquirer from 'inquirer';
+import inquirerAutocomplete from 'inquirer-autocomplete-prompt';
 import chalk from 'chalk';
 import {
   getCurrentBranch,
@@ -12,6 +13,8 @@ import {
   checkIfRemoteBranchExists,
   pullLatestChanges
 } from '../api.mjs';
+
+inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
 
 export async function listBranches() {
   const currentBranch = getCurrentBranch();
@@ -104,16 +107,26 @@ export async function checkoutBranchAndUpdate() {
       return;
     }
 
-    // Ask which branch to checkout
     const { selectedBranch } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'autocomplete',
         name: 'selectedBranch',
         message: 'Select a branch to checkout:',
-        choices: branches,
+        source: (answersSoFar, input = '') => {
+          // If no input, return all branches
+          if (!input) {
+            return Promise.resolve(branches);
+          }
+          const filtered = branches.filter(branch =>
+              branch.toLowerCase().includes(input.toLowerCase())
+          );
+
+          return Promise.resolve(filtered);
+        },
         pageSize: 15
       }
     ]);
+
 
     // Check for uncommitted changes
     const status = getStatus();

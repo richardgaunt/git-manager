@@ -11,9 +11,10 @@
     "start": "node index.mjs"
   },
   "dependencies": {
+    "chalk": "^5.2.0",
     "commander": "^11.0.0",
     "inquirer": "^9.2.7",
-    "chalk": "^5.2.0"
+    "inquirer-autocomplete-prompt": "^3.0.1"
   },
   "author": "",
   "license": "MIT"
