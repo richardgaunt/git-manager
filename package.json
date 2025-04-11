@@ -8,17 +8,13 @@
     "git-manager": "./index.mjs"
   },
   "scripts": {
-    "start": "node index.mjs",
-    "lint": "npx prettier --check"
+    "start": "node index.mjs"
   },
   "dependencies": {
-    "chalk": "^5.2.0",
     "commander": "^11.0.0",
-    "inquirer": "^9.2.7"
+    "inquirer": "^9.2.7",
+    "chalk": "^5.2.0"
   },
   "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "prettier": "3.5.3"
-  }
+  "license": "MIT"
 }
