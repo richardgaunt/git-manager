@@ -292,3 +292,24 @@ export function listTags() {
     return [];
   }
 }
+
+/**
+ * Set upstream and push the current branch to origin
+ * @param {string} remoteName The remote name to push to (defaults to 'origin')
+ * @returns {object} Result of the operation
+ */
+export function setUpstreamAndPush(remoteName = 'origin') {
+  try {
+    const currentBranch = getCurrentBranch();
+    execSync(`git push --set-upstream ${remoteName} ${currentBranch}`, { encoding: 'utf8' });
+    return {
+      success: true,
+      message: `Successfully set upstream and pushed branch ${currentBranch} to ${remoteName}`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to set upstream and push: ${error.message}`
+    };
+  }
+}

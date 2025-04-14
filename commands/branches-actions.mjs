@@ -17,7 +17,7 @@ import {
   createBranch,
   toKebabCase,
   applyStash,
-  listTags
+  listTags, setUpstreamAndPush
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -286,6 +286,9 @@ export async function createReleaseBranch() {
     createBranch(newBranchName, 'develop');
 
     console.log(chalk.green(`\n✓ Successfully created a release branch: ${newBranchName}`));
+  
+    setUpstreamAndPush();
+    console.log(chalk.green(`\n✓ Successfully published release branch: ${newBranchName}`));
 
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
