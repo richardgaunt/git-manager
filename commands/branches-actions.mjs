@@ -11,7 +11,13 @@ import {
   getStatus,
   checkoutBranch,
   checkIfRemoteBranchExists,
-  pullLatestChanges
+  pullLatestChanges,
+  stashChanges,
+  pullWithRebase,
+  createBranch,
+  toKebabCase,
+  applyStash,
+  listTags
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -32,7 +38,7 @@ export async function listBranches() {
   });
 }
 
-export async function branches() {
+export async function branchesActions() {
   const currentBranch = getCurrentBranch();
   const allBranches = getLocalBranches();
 
@@ -181,6 +187,149 @@ export async function checkoutBranchAndUpdate() {
     console.log(chalk.green(`\n✓ Successfully checked out branch: ${selectedBranch}`));
 
   } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Create a new feature branch
+ */
+export async function createFeatureBranch() {
+  console.log(chalk.blue('\n=== Creating Feature Branch ===\n'));
+
+  try {
+    await checkoutDevelop();
+
+    // Ask for issue number
+    const { issueKey } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'issueKey',
+        message: 'Enter the issue key/number (e.g., JIRA-123):',
+        validate: input => !!input.trim() || 'Issue key is required'
+      }
+    ]);
+
+    // Ask for branch name
+    const { branchName } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'branchName',
+        message: 'Enter a descriptive branch name:',
+        validate: input => !!input.trim() || 'Branch name is required'
+      }
+    ]);
+
+    // Create kebab-case branch name
+    const kebabIssueKey = toKebabCase(issueKey);
+    const kebabBranchName = toKebabCase(branchName).toLowerCase();
+    const newBranchName = `feature/${kebabIssueKey}-${kebabBranchName}`;
+
+    // Create and checkout the new branch
+    console.log(chalk.yellow(`\nCreating and checking out new branch: ${newBranchName}`));
+    createBranch(newBranchName, 'develop');
+
+    // Pop stashed changes if any
+    if (changesStashed) {
+      console.log(chalk.yellow('\nApplying stashed changes...'));
+      applyStash();
+    }
+
+    console.log(chalk.green(`\n✓ Successfully created feature branch: ${newBranchName}`));
+
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+
+/**
+ * Create a new release.
+ * @returns {Promise<void>}
+ */
+export async function createReleaseBranch() {
+
+  try {
+    console.log(chalk.blue('\n=== Creating Release ===\n'));
+    console.log(chalk.blue('\nChecking to see if a release already exists...\n'));
+    const branches = getAllBranches();
+    const existingReleases = branches.filter(branch => branch.startsWith('release/'));
+    if (existingReleases.length > 0) {
+      throw new Error(`A release already exists. Please complete the following release(s): ${existingReleases.join(', ')}`);
+    }
+    else {
+      console.log(chalk.yellow('No release branches found.'));
+    }
+
+    await checkoutDevelop();
+
+    // Ask for branch name
+    const tags = (await listTags()).slice(0, 3);
+    console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
+    const { releaseTag } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'releaseTag',
+        message: 'Enter the release tag (e.g., 1.0.0):',
+        default: tags[0],
+        validate: input => !!input.trim() || 'Release tag is required'
+      }
+    ]);
+
+    // Create kebab-case branch name
+    const newBranchName = `release/${releaseTag}`;
+
+    // Create and checkout the new branch
+    console.log(chalk.yellow(`\nCreating a new release: ${newBranchName}`));
+    createBranch(newBranchName, 'develop');
+
+    console.log(chalk.green(`\n✓ Successfully created a release branch: ${newBranchName}`));
+
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Stashes staged changes, checks out develop, gets latest changes.
+ * @returns {Promise<void>}
+ */
+async function checkoutDevelop() {
+  try {
+    // Get current branch for reference
+    const currentBranch = getCurrentBranch();
+    console.log(`Current branch: ${chalk.green(currentBranch)}`);
+
+    // Show current changes
+    const status = getStatus();
+    if (status.trim()) {
+      console.log('\nCurrent changes:');
+      console.log(status);
+    } else {
+      console.log('\nNo uncommitted changes detected.');
+    }
+
+    // Stash changes if needed
+    const hasChanges = status.trim().length > 0;
+    let changesStashed = false;
+
+    if (hasChanges) {
+      console.log(chalk.yellow('\nStashing current changes...'));
+      changesStashed = stashChanges();
+    }
+
+    // Checkout develop branch.
+    console.log(chalk.yellow('\nChecking out develop branch...'));
+    checkoutBranch('develop');
+
+    // Pull with rebase
+    console.log(chalk.yellow('\nUpdating develop branch with git pull --rebase...'));
+    pullWithRebase();
+  }
+  catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
   }

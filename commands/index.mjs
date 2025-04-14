@@ -1,7 +1,6 @@
 // commands/index.mjs
 
-import * as branches from './branches.mjs';
-import * as feature from './feature-branch.mjs';
+import * as branches from './branches-actions.mjs';
 import chalk from "chalk";
 import {getCurrentBranch, getCurrentDirectory} from "../api.mjs";
 import inquirer from "inquirer";
@@ -9,7 +8,6 @@ import inquirer from "inquirer";
 // Export all commands
 export const commands = {
   branches,
-  feature,
 };
 
 // Export a function to register all commands with a Commander program
@@ -42,13 +40,18 @@ export function registerCommands(program) {
     .command('delete-branches')
     .description('Delete local branches')
     .action(async () => {
-      await branches.branches();
+      await branches.branchesActions();
     });
 
   program
       .command('create-feature')
       .description('Create a new feature branch')
-      .action(feature.createFeatureBranch);
+      .action(branches.createFeatureBranch);
+
+    program
+        .command('create-release')
+        .description('Create a new release')
+        .action(branches.createReleaseBranch);
 
   // Add more command registrations here
 
@@ -71,6 +74,7 @@ export async function showInteractiveMenu() {
         {name: 'Checkout branch', value: 'checkout-branch'},
         {name: 'Delete local branches', value: 'delete-branches'},
         {name: 'Create feature branch', value: 'create-feature'},
+        {name: 'Create a release', value: 'create-release'},
         {name: 'Exit', value: 'exit'}
     ];
 
@@ -95,10 +99,13 @@ export async function showInteractiveMenu() {
                 await commands.branches.checkoutBranchAndUpdate();
                 break;
             case 'delete-branches':
-                await commands.branches.branches();
+                await commands.branches.branchesActions();
                 break;
             case 'create-feature':
-                await commands.feature.createFeatureBranch()
+                await commands.branches.createFeatureBranch()
+                break;
+            case 'create-release':
+                await commands.branches.createReleaseBranch()
                 break;
             case 'exit':
                 exitRequested = true;

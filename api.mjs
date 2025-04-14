@@ -1,8 +1,6 @@
 // api.mjs - Common git operations
 
 import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * Check if the current directory is a Git repository
@@ -268,5 +266,29 @@ export function pullLatestChanges() {
     return execSync('git pull --rebase', { encoding: 'utf8' });
   } catch (error) {
     throw new Error('Failed to pull latest changes: ' + error.message);
+  }
+}
+
+/**
+ * List all git tags in the project ordered by most recent
+ * @returns {string[]} Array of tags ordered by most recent first
+ */
+export function listTags() {
+  try {
+    // Get all tags with their creation dates
+    const stdout  = execSync('git for-each-ref --sort=-creatordate --format="%(refname:short)" refs/tags/', { encoding: 'utf8' });
+    if (!stdout.trim()) {
+      console.log('No tags found in this repository.');
+      return [];
+    }
+
+    // Parse the output to get tags with their dates
+    return stdout.trim().split('\n').map(tag => {
+      return tag.trim();
+    });
+
+  } catch (error) {
+    console.error('Error listing tags:', error.message);
+    return [];
   }
 }
