@@ -18,7 +18,7 @@ describe('Branch Operations', () => {
       if (command === 'git branch --show-current') return 'main';
       if (command === 'git branch') return '* main\n  develop\n  feature/test';
       if (command === 'git status -s') return '';
-      
+
       // Return empty string for other commands
       return '';
     });

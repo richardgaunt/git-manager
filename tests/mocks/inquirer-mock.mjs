@@ -10,13 +10,13 @@ export function createInquirerMock(mockAnswers = {}) {
     prompt: jest.fn((questions) => {
       // Convert single question to array for consistent handling
       const questionsArray = Array.isArray(questions) ? questions : [questions];
-      
+
       // Build response object based on question names
       const responses = {};
-      
+
       for (const question of questionsArray) {
         const questionName = question.name;
-        
+
         if (mockAnswers[questionName] !== undefined) {
           // Use the provided mock answer
           responses[questionName] = mockAnswers[questionName];
@@ -31,8 +31,8 @@ export function createInquirerMock(mockAnswers = {}) {
               break;
             case 'list':
             case 'autocomplete':
-              responses[questionName] = question.choices 
-                ? (Array.isArray(question.choices) ? question.choices[0] : Object.values(question.choices)[0]) 
+              responses[questionName] = question.choices
+                ? (Array.isArray(question.choices) ? question.choices[0] : Object.values(question.choices)[0])
                 : '';
               break;
             case 'checkbox':
@@ -43,10 +43,10 @@ export function createInquirerMock(mockAnswers = {}) {
           }
         }
       }
-      
+
       return Promise.resolve(responses);
     }),
-    
+
     // Add mock for registerPrompt
     registerPrompt: jest.fn()
   };

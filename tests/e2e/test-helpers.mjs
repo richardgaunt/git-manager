@@ -9,7 +9,7 @@ import { createTestRepository } from '../integration/test-repository.mjs';
 
 /**
  * Runs git-manager with the specified command line options
- * 
+ *
  * @param {string} command Command to run
  * @param {Object} options Configuration options
  * @param {string} options.cwd Working directory
@@ -23,16 +23,16 @@ export function runGitManager(command, options = {}) {
     input = '',
     expectError = false
   } = options;
-  
+
   // Find the git-manager script using the process working directory
   // ES modules don't have __dirname, so we need to use import.meta.url
   const currentFilePath = new URL(import.meta.url).pathname;
   const testsPath = path.dirname(path.dirname(currentFilePath));
   const scriptPath = path.resolve(testsPath, '../index.mjs');
-  
+
   // Build command to execute
   const cmd = `node ${scriptPath} ${command || ''}`;
-  
+
   try {
     // Run git-manager
     const output = execSync(cmd, {
@@ -48,7 +48,7 @@ export function runGitManager(command, options = {}) {
         NO_COLOR: '1'
       }
     });
-    
+
     if (expectError) {
       return {
         success: false,
@@ -56,7 +56,7 @@ export function runGitManager(command, options = {}) {
         error: 'Expected error but command succeeded'
       };
     }
-    
+
     return {
       success: true,
       output
@@ -69,7 +69,7 @@ export function runGitManager(command, options = {}) {
         output: error.stdout || ''
       };
     }
-    
+
     return {
       success: false,
       output: error.stdout || '',
@@ -80,20 +80,20 @@ export function runGitManager(command, options = {}) {
 
 /**
  * Creates a test environment with git repository
- * 
+ *
  * @param {Object} options Repository options
  * @returns {Object} Test environment object with repo path and cleanup function
  */
 export function createTestEnvironment(options = {}) {
   // Create test repository
   const testRepo = createTestRepository(options);
-  
+
   // Save original working directory
   const originalCwd = process.cwd();
-  
+
   // Change to test repository
   process.chdir(testRepo.path);
-  
+
   // Return test environment object
   return {
     repoPath: testRepo.path,
@@ -101,7 +101,7 @@ export function createTestEnvironment(options = {}) {
     cleanup: () => {
       // Restore original working directory
       process.chdir(originalCwd);
-      
+
       // Clean up test repository
       testRepo.cleanup();
     }
@@ -110,7 +110,7 @@ export function createTestEnvironment(options = {}) {
 
 /**
  * Gets the current git status as parsed object
- * 
+ *
  * @param {string} repoPath Repository path
  * @returns {Object} Git status object
  */
@@ -119,23 +119,23 @@ export function getGitStatus(repoPath) {
     cwd: repoPath,
     encoding: 'utf8'
   });
-  
+
   const modifiedFiles = [];
   const untrackedFiles = [];
-  
+
   // Parse status output
   output.split('\n').filter(Boolean).forEach(line => {
     // First two characters indicate the status
     const status = line.substring(0, 2);
     const file = line.substring(3);
-    
+
     if (status.includes('M') || status.includes('A') || status.includes('D')) {
       modifiedFiles.push(file);
     } else if (status.includes('?')) {
       untrackedFiles.push(file);
     }
   });
-  
+
   return {
     modified: modifiedFiles,
     untracked: untrackedFiles,
@@ -146,7 +146,7 @@ export function getGitStatus(repoPath) {
 
 /**
  * Gets the current branch name
- * 
+ *
  * @param {string} repoPath Repository path
  * @returns {string} Current branch name
  */
@@ -159,14 +159,14 @@ export function getCurrentBranch(repoPath) {
 
 /**
  * Gets all branches
- * 
+ *
  * @param {string} repoPath Repository path
  * @param {boolean} includeRemote Whether to include remote branches
  * @returns {string[]} Array of branch names
  */
 export function getBranches(repoPath, includeRemote = false) {
   const cmd = includeRemote ? 'git branch -a' : 'git branch';
-  
+
   return execSync(cmd, {
     cwd: repoPath,
     encoding: 'utf8'
@@ -178,7 +178,7 @@ export function getBranches(repoPath, includeRemote = false) {
 
 /**
  * Creates a file with content in the repository
- * 
+ *
  * @param {string} repoPath Repository path
  * @param {string} filePath File path relative to repository root
  * @param {string} content File content
@@ -187,7 +187,7 @@ export function getBranches(repoPath, includeRemote = false) {
 export function createFile(repoPath, filePath, content, stage = false) {
   const fullPath = path.join(repoPath, filePath);
   fs.writeFileSync(fullPath, content);
-  
+
   if (stage) {
     execSync(`git add "${filePath}"`, { cwd: repoPath });
   }
@@ -195,7 +195,7 @@ export function createFile(repoPath, filePath, content, stage = false) {
 
 /**
  * Gets stash list
- * 
+ *
  * @param {string} repoPath Repository path
  * @returns {string[]} Stash list
  */
@@ -205,7 +205,7 @@ export function getStashList(repoPath) {
       cwd: repoPath,
       encoding: 'utf8'
     });
-    
+
     return output.split('\n').filter(Boolean);
   } catch (error) {
     return [];

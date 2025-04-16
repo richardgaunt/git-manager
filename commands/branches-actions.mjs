@@ -88,7 +88,7 @@ export async function branchesActions() {
   console.log('\nDeleting branches...');
 
   for (const branch of selectedBranches) {
-    let result = deleteLocalBranch(branch, true);
+    const result = deleteLocalBranch(branch, true);
     if (result.success) {
       console.log(chalk.green(result.message));
     } else {
@@ -112,7 +112,7 @@ export async function checkoutBranchAndUpdate() {
 
     // Get all branches
     const branches = getAllBranches()
-        .filter(branch => branch !== currentBranch); // Remove current branch from list
+      .filter(branch => branch !== currentBranch); // Remove current branch from list
 
     if (branches.length === 0) {
       console.log(chalk.yellow('No other branches available to checkout.'));
@@ -130,7 +130,7 @@ export async function checkoutBranchAndUpdate() {
             return Promise.resolve(branches);
           }
           const filtered = branches.filter(branch =>
-              branch.toLowerCase().includes(input.toLowerCase())
+            branch.toLowerCase().includes(input.toLowerCase())
           );
 
           return Promise.resolve(filtered);
@@ -148,9 +148,9 @@ export async function checkoutBranchAndUpdate() {
     if (status.trim()) {
       // Parse the status to get changed files
       stashedFiles = status
-          .split('\n')
-          .filter(line => line.match(/^\s*[MADRCU?]/) || line.match(/^\s*[MADRCU?][MADRCU?]/))
-          .map(line => line.trim().replace(/^[MADRCU?][MADRCU?]?\s+/, ''));
+        .split('\n')
+        .filter(line => line.match(/^\s*[MADRCU?]/) || line.match(/^\s*[MADRCU?][MADRCU?]/))
+        .map(line => line.trim().replace(/^[MADRCU?][MADRCU?]?\s+/, ''));
 
       console.log(chalk.yellow(`\nStashing ${stashedFiles.length} changed files...`));
 
@@ -191,7 +191,6 @@ export async function checkoutBranchAndUpdate() {
     }
 
     console.log(chalk.green(`\n✓ Successfully checked out branch: ${selectedBranch}`));
-
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -243,7 +242,6 @@ export async function createFeatureBranch() {
     }
 
     console.log(chalk.green(`\n✓ Successfully created feature branch: ${newBranchName}`));
-
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -256,7 +254,6 @@ export async function createFeatureBranch() {
  * @returns {Promise<void>}
  */
 export async function createReleaseBranch() {
-
   try {
     console.log(chalk.blue('\n=== Creating Release ===\n'));
     console.log(chalk.blue('\nChecking to see if a release already exists...\n'));
@@ -264,8 +261,7 @@ export async function createReleaseBranch() {
     const existingReleases = branches.filter(branch => branch.startsWith('release/'));
     if (existingReleases.length > 0) {
       throw new Error(`A release already exists. Please complete the following release(s): ${existingReleases.join(', ')}`);
-    }
-    else {
+    } else {
       console.log(chalk.yellow('No release branches found.'));
     }
 
@@ -284,7 +280,6 @@ export async function createReleaseBranch() {
 
     setUpstreamAndPush();
     console.log(chalk.green(`\n✓ Successfully published release branch: ${newBranchName}`));
-
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -326,8 +321,7 @@ async function checkoutDevelop() {
     // Pull with rebase
     console.log(chalk.yellow('\nUpdating develop branch with git pull --rebase...'));
     pullWithRebase();
-  }
-  catch (error) {
+  } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
   }
@@ -369,8 +363,7 @@ async function checkoutMain() {
     // Pull with rebase
     console.log(chalk.yellow(`\nUpdating ${mainBranch} branch with git pull --rebase...`));
     pullWithRebase();
-  }
-  catch (error) {
+  } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
   }
@@ -389,8 +382,7 @@ export async function createHotfix() {
     const existingHotfixes = branches.filter(branch => branch.startsWith('hotfix/'));
     if (existingHotfixes.length > 0) {
       throw new Error(`A hotfix already exists. Please complete the following release(s): ${existingHotfixes.join(', ')}`);
-    }
-    else {
+    } else {
       console.log(chalk.yellow('No release branches found.'));
     }
 
@@ -406,7 +398,6 @@ export async function createHotfix() {
     createBranch(newBranchName, getMainBranch());
 
     console.log(chalk.green(`\n✓ Successfully created hotfix: ${newBranchName}`));
-
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -521,8 +512,7 @@ async function doRelease(type) {
     console.log(chalk.blue(`\nMerging ${type} branch into ${mainBranch}`));
     try {
       mergeBranch(releaseBranch);
-    }
-    catch (error) {
+    } catch (error) {
       console.log(chalk.red(`Merge conflicts detected when merging ${type} into ${mainBranch}. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
       return;
@@ -536,8 +526,7 @@ async function doRelease(type) {
     mergeBranch(releaseBranch);
     try {
       mergeBranch(releaseBranch);
-    }
-    catch (error) {
+    } catch (error) {
       console.log(chalk.red(`Merge conflicts detected when merging ${type} into develop. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
       return;
@@ -549,21 +538,20 @@ async function doRelease(type) {
     pushToRemote(tagName);
 
     console.log(chalk.blue(`\nDeleting ${type} branch locally`));
-    let result = deleteLocalBranch(releaseBranch, false);
+    const result = deleteLocalBranch(releaseBranch, false);
     if (!result.success) {
       console.log(chalk.red(`Failed to delete local ${type} branch: ${result.message}`));
       return;
     }
 
     console.log(chalk.blue(`\nDeleting ${type} branch from remote`));
-    await deleteRemoteBranch(releaseBranch)
+    await deleteRemoteBranch(releaseBranch);
 
     console.log(chalk.blue('\n16. Checking out develop branch'));
     checkoutBranch('develop');
 
 
     console.log(chalk.green(`\n✅ ${type} successfully completed!`));
-
   } catch (error) {
     console.error(chalk.red('\nAn error occurred:'), error);
   }

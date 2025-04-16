@@ -10,7 +10,7 @@ import { execSync } from 'child_process';
 
 /**
  * Creates a temporary Git repository for testing
- * 
+ *
  * @param {Object} options Configuration options
  * @param {boolean} options.withDevelop Whether to include a develop branch
  * @param {boolean} options.withFeature Whether to include a feature branch
@@ -23,29 +23,29 @@ export function createTestRepository(options = {}) {
     withFeature = false,
     withRemote = false
   } = options;
-  
+
   // Create a temporary directory
   const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-manager-test-'));
-  
+
   // Initialize git repository
   execSync('git init', { cwd: testDir });
-  
+
   // Configure git identity for the test repository
   execSync('git config user.name "Test User"', { cwd: testDir });
   execSync('git config user.email "test@example.com"', { cwd: testDir });
-  
+
   // Create initial commit on main branch
   fs.writeFileSync(path.join(testDir, 'README.md'), '# Test Repository\n');
   execSync('git add README.md', { cwd: testDir });
   execSync('git commit -m "Initial commit"', { cwd: testDir });
-  
+
   // Ensure we're using main branch (newer git defaults to main, older to master)
   try {
     execSync('git branch -m master main', { cwd: testDir, stdio: 'ignore' });
   } catch (e) {
     // Branch already named main, ignore error
   }
-  
+
   // Create develop branch if requested
   if (withDevelop) {
     execSync('git checkout -b develop', { cwd: testDir });
@@ -53,7 +53,7 @@ export function createTestRepository(options = {}) {
     execSync('git add develop.md', { cwd: testDir });
     execSync('git commit -m "Add develop file"', { cwd: testDir });
   }
-  
+
   // Create feature branch if requested
   if (withFeature) {
     execSync('git checkout -b feature/test-feature', { cwd: testDir });
@@ -61,17 +61,17 @@ export function createTestRepository(options = {}) {
     execSync('git add feature.md', { cwd: testDir });
     execSync('git commit -m "Add feature file"', { cwd: testDir });
   }
-  
+
   // Set up remote simulation if requested
   let remoteDir;
   if (withRemote) {
     // Create a bare repository to act as a remote
     remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-manager-remote-'));
     execSync('git init --bare', { cwd: remoteDir });
-    
+
     // Add the remote to the test repository
     execSync(`git remote add origin ${remoteDir}`, { cwd: testDir });
-    
+
     // Push branches to remote
     execSync('git push -u origin main', { cwd: testDir });
     if (withDevelop) {
@@ -81,10 +81,10 @@ export function createTestRepository(options = {}) {
       execSync('git push -u origin feature/test-feature', { cwd: testDir });
     }
   }
-  
+
   // Return to main branch
   execSync('git checkout main', { cwd: testDir });
-  
+
   // Return repository information and cleanup function
   return {
     path: testDir,
@@ -104,7 +104,7 @@ export function createTestRepository(options = {}) {
 
 /**
  * Creates a file with changes in the repository
- * 
+ *
  * @param {string} repoPath Path to the repository
  * @param {string} fileName Name of the file to create or modify
  * @param {string} content Content to write to the file
@@ -118,46 +118,50 @@ export function createFileWithChanges(repoPath, fileName, content, stage = false
   }
 }
 
+// Note: For the test repository utility functions, we need to keep using execSync with paths
+// because these functions are used during test setup, where the process.cwd() might not yet be
+// set to the test repo path. The API functions assume they're running in the repo directory.
+
 /**
  * Gets the current branch name in a repository
- * 
+ *
  * @param {string} repoPath Path to the repository
  * @returns {string} Current branch name
  */
 export function getCurrentBranch(repoPath) {
-  return execSync('git branch --show-current', { 
-    cwd: repoPath, 
-    encoding: 'utf8' 
+  return execSync('git branch --show-current', {
+    cwd: repoPath,
+    encoding: 'utf8'
   }).trim();
 }
 
 /**
  * Gets the status of a repository
- * 
+ *
  * @param {string} repoPath Path to the repository
  * @returns {string} Git status output
  */
 export function getRepoStatus(repoPath) {
-  return execSync('git status -s', { 
-    cwd: repoPath, 
-    encoding: 'utf8' 
+  return execSync('git status -s', {
+    cwd: repoPath,
+    encoding: 'utf8'
   });
 }
 
 /**
  * Lists branches in a repository
- * 
+ *
  * @param {string} repoPath Path to the repository
  * @param {boolean} includeRemote Whether to include remote branches
  * @returns {string[]} Array of branch names
  */
 export function listBranches(repoPath, includeRemote = false) {
   const command = includeRemote ? 'git branch -a' : 'git branch';
-  const output = execSync(command, { 
-    cwd: repoPath, 
-    encoding: 'utf8' 
+  const output = execSync(command, {
+    cwd: repoPath,
+    encoding: 'utf8'
   });
-  
+
   return output
     .split('\n')
     .filter(Boolean)

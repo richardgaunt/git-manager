@@ -1,7 +1,7 @@
 // api.mjs - Common git operations
 
-import {execSync} from 'child_process';
-import chalk from "chalk";
+import { execSync } from 'child_process';
+import chalk from 'chalk';
 
 /**
  * Check if the current directory is a Git repository
@@ -23,8 +23,7 @@ export function isGitRepository() {
 export function getCurrentDirectory() {
   try {
     return execSync('pwd', { encoding: 'utf8' }).trim();
-  }
-  catch (error) {
+  } catch (error) {
     throw new Error('Failed to get current directory: ' + error.message);
   }
 }
@@ -83,11 +82,10 @@ export function deleteLocalBranch(branchName, force = false) {
  * @param {string} branch Branch to delete
  * @param {string} remote Remote repository to delete from.
  */
-export function deleteRemoteBranch(branch, remote = 'origin' ) {
+export function deleteRemoteBranch(branch, remote = 'origin') {
   try {
     execSync(`git push ${remote} --delete ${branch}`);
-  }
-  catch (error) {
+  } catch (error) {
     throw new Error(error.message);
   }
 }
@@ -232,10 +230,10 @@ export function createBranch(branchName, startPoint = null) {
  */
 export function toKebabCase(text) {
   return text
-      .trim()
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '') // Remove special characters except hyphen
-      .replace(/[\s_]+/g, '-'); // Replace spaces and underscores with hyphens
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphen
+    .replace(/[\s_]+/g, '-'); // Replace spaces and underscores with hyphens
 }
 
 /**
@@ -264,11 +262,11 @@ export function getAllBranches() {
 
     // Parse branch names and remove duplicates
     return output
-        .split('\n')
-        .filter(Boolean)
-        .map(branch => branch.replace(/^\*?\s*remotes\/origin\//, '').replace(/^\*?\s*/, '').trim())
-        .filter(branch => !branch.includes('HEAD ->') && !branch.includes('/HEAD')) // Remove HEAD pointers
-        .filter((branch, index, self) => self.indexOf(branch) === index); // Remove duplicates
+      .split('\n')
+      .filter(Boolean)
+      .map(branch => branch.replace(/^\*?\s*remotes\/origin\//, '').replace(/^\*?\s*/, '').trim())
+      .filter(branch => !branch.includes('HEAD ->') && !branch.includes('/HEAD')) // Remove HEAD pointers
+      .filter((branch, index, self) => self.indexOf(branch) === index); // Remove duplicates
   } catch (error) {
     throw new Error('Failed to get branches: ' + error.message);
   }
@@ -303,7 +301,6 @@ export function listTags() {
     return stdout.trim().split('\n').map(tag => {
       return tag.trim();
     });
-
   } catch (error) {
     console.error('Error listing tags:', error.message);
     return [];
@@ -345,10 +342,9 @@ export function pushToRemote(branch, remoteName = 'origin') {
   try {
     console.log(chalk.blue(`\nPushing ${branch} ${gitArtifactType}`));
     execSync(`git push ${remoteName} ${branch}`);
-  }
-  catch (error) {
-      console.log(chalk.red(`Failed to push ${branch} ${gitArtifactType}: ${error.message}`));
-      throw new Error(error.message);
+  } catch (error) {
+    console.log(chalk.red(`Failed to push ${branch} ${gitArtifactType}: ${error.message}`));
+    throw new Error(error.message);
   }
 }
 
@@ -375,8 +371,7 @@ export function mergeBranch(mergeBranch) {
   const currentBranch = getCurrentBranch();
   try {
     execSync(`git merge --no-ff ${mergeBranch} -m "Merge ${mergeBranch} into ${currentBranch}"`);
-  }
-  catch (e) {
+  } catch (e) {
     throw new Error(`Failed to merge ${mergeBranch} into ${currentBranch}: ${e.message}`);
   }
 }
@@ -390,8 +385,7 @@ export async function createTag(tagName) {
   console.log(chalk.blue(`\nCreating tag ${tagName}`));
   try {
     execSync(`git tag -a ${tagName} -m ${tagName}`);
-  }
-  catch (error) {
+  } catch (error) {
     console.log(chalk.red(`Failed to create tag ${tagName}`));
     console.log(chalk.yellow(error.message));
     throw new Error(error.message);

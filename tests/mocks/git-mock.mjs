@@ -15,10 +15,10 @@ export const gitMockResponses = {
 // A utility function to mock execSync
 export function mockExecSync(command, options = {}) {
   // Find the matching command in our mock responses
-  const matchingCommand = Object.keys(gitMockResponses).find(cmd => 
+  const matchingCommand = Object.keys(gitMockResponses).find(cmd =>
     command === `git ${cmd}` || command.startsWith(`git ${cmd} `)
   );
-  
+
   if (matchingCommand) {
     // If encoding is set to 'utf8', return the string, otherwise return a Buffer
     if (options.encoding === 'utf8') {
@@ -26,12 +26,12 @@ export function mockExecSync(command, options = {}) {
     }
     return Buffer.from(gitMockResponses[matchingCommand]);
   }
-  
+
   // For commands we don't have explicit mocks for
   if (command.startsWith('git ')) {
     return options.encoding === 'utf8' ? 'Mock git command executed' : Buffer.from('Mock git command executed');
   }
-  
+
   // For non-git commands or if we want to simulate a failure
   throw new Error(`Command not mocked: ${command}`);
 }
