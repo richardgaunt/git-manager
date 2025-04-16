@@ -88,7 +88,6 @@ export function deleteRemoteBranch(branch, remote = 'origin' ) {
     execSync(`git push ${remote} --delete ${branch}`);
   }
   catch (error) {
-    console.log(chalk.red(`Failed to delete remote hotfix branch: ${remoteDelError}`));
     throw new Error(error.message);
   }
 }
@@ -398,3 +397,4 @@ export async function createTag(tagName) {
     throw new Error(error.message);
   }
 }
+

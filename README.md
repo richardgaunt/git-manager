@@ -96,6 +96,7 @@ This will display the interactive menu that allows you to:
 - List all branches
 - Delete branches
 - Create feature branches
+- Create and manage release branches
 - Create and manage hotfix branches
 - Checkout and update branches
 - And more...
@@ -110,6 +111,10 @@ git_manager branches
 git_manager delete-branches
 # Create feature branch
 git_manager create-feature
+# Create a release
+git_manager create-release
+# Finish a release
+git_manager finish-release
 # Create hotfix branch
 git_manager create-hotfix
 # Finish a hotfix branch
