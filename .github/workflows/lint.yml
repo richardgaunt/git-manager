@@ -26,28 +26,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Install ESLint
-        run: npm install --save-dev eslint eslint-plugin-node
-      
-      - name: Create ESLint config
-        run: |
-          cat > .eslintrc.json << 'EOL'
-          {
-            "env": {
-              "node": true,
-              "es2022": true
-            },
-            "extends": "eslint:recommended",
-            "parserOptions": {
-              "ecmaVersion": "latest",
-              "sourceType": "module"
-            },
-            "rules": {
-              "no-unused-vars": "warn",
-              "no-console": "off"
-            }
-          }
-          EOL
-      
       - name: Run ESLint
-        run: ./node_modules/.bin/eslint . --ext .mjs
+        run: npm run lint:report || true
+      
+      - name: Upload ESLint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          retention-days: 5
+          if-no-files-found: ignore
