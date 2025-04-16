@@ -1,13 +1,16 @@
 import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
 import path from 'path';
 import fs from 'fs';
-import { execSync } from 'child_process';
 import {
   createTestRepository,
-  getCurrentBranch,
-  getRepoStatus,
   createFileWithChanges
 } from './test-repository.mjs';
+import {
+  stashChanges,
+  applyStash,
+  hasStashes,
+  getStatus
+} from '../../api.mjs';
 
 // Test integration between the stash functionality and actual git operations
 describe('Stash Operations Integration', () => {
@@ -42,52 +45,46 @@ describe('Stash Operations Integration', () => {
     jest.restoreAllMocks();
   });
 
-  test('stashing and applying changes works with git commands', () => {
+  test('stashing and applying changes works using API functions', () => {
     // Create some changes and add them to staging
     createFileWithChanges(testRepo.path, 'test-file.txt', 'Test content', true);
 
     // Verify changes exist
-    const initialStatus = getRepoStatus(testRepo.path);
+    const initialStatus = getStatus();
     expect(initialStatus).toContain('test-file.txt');
 
-    // Stash changes using git directly
-    execSync('git stash save "Test stash"', { cwd: testRepo.path });
+    // Stash changes using API function
+    const stashed = stashChanges("Test stash");
+    expect(stashed).toBe(true);
 
-    // Verify changes are stashed (could have untracked files which won't be stashed by default)
-    const afterStashStatus = getRepoStatus(testRepo.path);
+    // Verify changes are stashed
+    const afterStashStatus = getStatus();
     expect(afterStashStatus).not.toContain('M test-file.txt');
 
     // Check if stash exists
-    const stashList = execSync('git stash list', {
-      cwd: testRepo.path,
-      encoding: 'utf8'
-    });
-    expect(stashList.length).toBeGreaterThan(0);
+    expect(hasStashes()).toBe(true);
 
     // Apply stash
-    execSync('git stash apply', { cwd: testRepo.path });
+    const applied = applyStash();
+    expect(applied).toBe(true);
 
     // Verify changes are restored
-    const finalStatus = getRepoStatus(testRepo.path);
+    const finalStatus = getStatus();
     expect(finalStatus).toContain('test-file.txt');
   });
 
   test('stashing behaves correctly with no changes', () => {
-    // Try to stash with no changes
-    const stashCommand = 'git stash save "Empty stash"';
-    const output = execSync(stashCommand, {
-      cwd: testRepo.path,
-      encoding: 'utf8'
-    });
+    // Verify there are no changes initially
+    const initialStatus = getStatus();
+    expect(initialStatus.trim()).toBe('');
 
-    // Verify the output indicates no changes to stash
-    expect(output).toContain('No local changes to save');
+    // Try to stash with no changes
+    const stashResult = stashChanges("Empty stash");
+    
+    // Verify no changes were stashed since there were none
+    expect(stashResult).toBe(false);
 
     // Verify no stash was created
-    const stashList = execSync('git stash list', {
-      cwd: testRepo.path,
-      encoding: 'utf8'
-    });
-    expect(stashList).toBe('');
+    expect(hasStashes()).toBe(false);
   });
 });

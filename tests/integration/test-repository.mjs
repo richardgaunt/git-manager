@@ -118,6 +118,10 @@ export function createFileWithChanges(repoPath, fileName, content, stage = false
   }
 }
 
+// Note: For the test repository utility functions, we need to keep using execSync with paths
+// because these functions are used during test setup, where the process.cwd() might not yet be
+// set to the test repo path. The API functions assume they're running in the repo directory.
+
 /**
  * Gets the current branch name in a repository
  *

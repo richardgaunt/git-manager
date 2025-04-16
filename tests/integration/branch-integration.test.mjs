@@ -4,11 +4,16 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 import {
   createTestRepository,
-  getCurrentBranch,
-  getRepoStatus,
-  listBranches,
   createFileWithChanges
 } from './test-repository.mjs';
+import {
+  getCurrentBranch,
+  getStatus,
+  getLocalBranches,
+  checkoutBranch,
+  createBranch,
+  toKebabCase
+} from '../../api.mjs';
 
 // Test integration between branch-related commands and actual git operations
 describe('Branch Operations Integration', () => {
@@ -44,57 +49,57 @@ describe('Branch Operations Integration', () => {
     jest.restoreAllMocks();
   });
 
-  test('feature branch creation works with real git commands', () => {
+  test('feature branch creation works using API functions', () => {
     // First, make sure we have changes to test stashing
     createFileWithChanges(testRepo.path, 'unstaged.txt', 'Unstaged content');
 
-    // We'll create a branch directly using git commands
+    // We'll create a branch using API functions
     const branchName = 'JIRA-123-test-feature';
-    const kebabBranchName = branchName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-');
+    const kebabBranchName = toKebabCase(branchName);
     const featureBranch = `feature/${kebabBranchName}`;
 
     // Get current branch for later verification
-    const initialBranch = getCurrentBranch(testRepo.path);
+    const initialBranch = getCurrentBranch();
     expect(initialBranch).toBe('main');
 
     // First, check out develop to work from
-    execSync('git checkout develop', { cwd: testRepo.path });
+    checkoutBranch('develop');
 
     // Create feature branch from develop
-    execSync(`git checkout -b ${featureBranch}`, { cwd: testRepo.path });
+    createBranch(featureBranch);
 
     // Create a file on the feature branch and commit it
     createFileWithChanges(testRepo.path, 'feature-file.txt', 'Feature content', true);
     execSync('git commit -m "Add feature file"', { cwd: testRepo.path });
 
     // Verify we're on the feature branch with our new file
-    expect(getCurrentBranch(testRepo.path)).toBe(featureBranch);
+    expect(getCurrentBranch()).toBe(featureBranch);
     expect(fs.existsSync(path.join(testRepo.path, 'feature-file.txt'))).toBe(true);
 
     // Get list of branches and verify our feature branch exists
-    const branches = listBranches(testRepo.path);
+    const branches = getLocalBranches();
     expect(branches).toContain(featureBranch);
   });
 
-  test('can create and switch between multiple branches', () => {
+  test('can create and switch between multiple branches using API functions', () => {
     // Create multiple branches
-    execSync('git checkout -b feature/branch1', { cwd: testRepo.path });
+    createBranch('feature/branch1');
     createFileWithChanges(testRepo.path, 'branch1.txt', 'Branch 1 content', true);
     execSync('git commit -m "Branch 1 commit"', { cwd: testRepo.path });
 
-    execSync('git checkout main', { cwd: testRepo.path });
-    execSync('git checkout -b feature/branch2', { cwd: testRepo.path });
+    checkoutBranch('main');
+    createBranch('feature/branch2');
     createFileWithChanges(testRepo.path, 'branch2.txt', 'Branch 2 content', true);
     execSync('git commit -m "Branch 2 commit"', { cwd: testRepo.path });
 
     // Verify we can switch between branches
-    execSync('git checkout feature/branch1', { cwd: testRepo.path });
-    expect(getCurrentBranch(testRepo.path)).toBe('feature/branch1');
+    checkoutBranch('feature/branch1');
+    expect(getCurrentBranch()).toBe('feature/branch1');
     expect(fs.existsSync(path.join(testRepo.path, 'branch1.txt'))).toBe(true);
     expect(fs.existsSync(path.join(testRepo.path, 'branch2.txt'))).toBe(false);
 
-    execSync('git checkout feature/branch2', { cwd: testRepo.path });
-    expect(getCurrentBranch(testRepo.path)).toBe('feature/branch2');
+    checkoutBranch('feature/branch2');
+    expect(getCurrentBranch()).toBe('feature/branch2');
     expect(fs.existsSync(path.join(testRepo.path, 'branch1.txt'))).toBe(false);
     expect(fs.existsSync(path.join(testRepo.path, 'branch2.txt'))).toBe(true);
   });
