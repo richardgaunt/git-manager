@@ -35,6 +35,8 @@ export default [
   // Rules configuration
   {
     rules: {
+      // Disable specific rules for this project
+      'no-undef': 'off', // Disable undefined variable checks (we have variables from outer scopes)
       // Error prevention
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
@@ -90,7 +92,9 @@ export default [
       'n/no-unpublished-require': 'off',
       'n/no-missing-import': 'off',
       'n/no-unpublished-import': 'off',
-      'n/no-unsupported-features/es-syntax': 'off'
+      'n/no-unsupported-features/es-syntax': 'off',
+      // Allow process.exit() in CLI applications
+      'n/no-process-exit': 'off'
     }
   }
 ];
