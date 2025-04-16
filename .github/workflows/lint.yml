@@ -1,0 +1,53 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install ESLint
+        run: npm install --save-dev eslint eslint-plugin-node
+      
+      - name: Create ESLint config
+        run: |
+          cat > .eslintrc.json << 'EOL'
+          {
+            "env": {
+              "node": true,
+              "es2022": true
+            },
+            "extends": "eslint:recommended",
+            "parserOptions": {
+              "ecmaVersion": "latest",
+              "sourceType": "module"
+            },
+            "rules": {
+              "no-unused-vars": "warn",
+              "no-console": "off"
+            }
+          }
+          EOL
+      
+      - name: Run ESLint
+        run: ./node_modules/.bin/eslint . --ext .mjs

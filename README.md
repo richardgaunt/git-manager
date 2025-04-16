@@ -2,6 +2,9 @@
 
 A powerful CLI tool to streamline Git workflow operations with an interactive interface.
 
+[![Tests](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml)
+[![Linting](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml)
+
 ## Features
 
 - **Interactive Menu System**: Navigate through Git operations with an easy-to-use menu interface
@@ -168,6 +171,29 @@ git-manager/
    ├── index.mjs # Command registry and loader 
    └── branches-actions.mjs # Branch workflow implementations
 ``` 
+
+## Development
+
+### Testing
+
+Git Manager uses Jest for testing with the following command structure:
+
+```bash
+# Run all tests
+npm test
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run only end-to-end tests
+npm run test:e2e
+
+# Generate test coverage report
+npm run test:coverage
+```
 
 ## License
 
