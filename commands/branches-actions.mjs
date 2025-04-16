@@ -17,7 +17,13 @@ import {
   createBranch,
   toKebabCase,
   applyStash,
-  listTags, setUpstreamAndPush, getMainBranch
+  listTags,
+  setUpstreamAndPush,
+  getMainBranch,
+  mergeBranch,
+  createTag,
+  pushToRemote,
+  deleteRemoteBranch
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -265,7 +271,7 @@ export async function createReleaseBranch() {
 
     await checkoutDevelop();
 
-    await createTag();
+    const releaseTag = await listAndSelectTag();
 
     // Create kebab-case branch name
     const newBranchName = `release/${releaseTag}`;
@@ -391,7 +397,7 @@ export async function createHotfix() {
     await checkoutMain();
 
     // Output recent tags.
-    await createTag();
+    const releaseTag = await listAndSelectTag();
     // Create kebab-case branch name
     const newBranchName = `hotfix/${releaseTag}`;
 
@@ -410,10 +416,10 @@ export async function createHotfix() {
 /**
  * Creates tags for branch.
  *
- * @returns {Promise<void>}
+ * @returns {Promise<string>}
  */
-async function createTag() {
-  const tags = (await listTags()).slice(0, 3);
+async function listAndSelectTag() {
+  const tags = (listTags()).slice(0, 3);
   console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
   const { releaseTag } = await inquirer.prompt([
     {
@@ -424,4 +430,119 @@ async function createTag() {
       validate: input => !!input.trim() || 'Release tag is required'
     }
   ]);
+
+  return releaseTag;
+}
+
+/**
+ * Finishes a hotfix branch by merging it into master and develop,
+ * creating a tag, and cleaning up the hotfix branch
+ */
+export async function finishHotfix() {
+  console.log(chalk.blue('\n=== Finish Hotfix ===\n'));
+
+  try {
+    // Get hotfix branch
+    const hotfixBranches = getAllBranches().filter(branch => branch.startsWith('hotfix/'));
+    if (hotfixBranches.length === 0) {
+      console.log(chalk.yellow('No hotfix branches exist.'));
+      return;
+    }
+    const { hotfixBranch } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'hotfixBranch',
+        message: 'Select a hotfix branch to finish:',
+        choices: hotfixBranches,
+      }
+    ]);
+
+    console.log(chalk.yellow(`\nChecking out hotfix branch: ${hotfixBranch}`));
+    // Extract the hotfix version for tagging
+    const tagName = hotfixBranch.replace('hotfix/', '');
+
+    // Get the main branch (main or master)
+    const mainBranch = getMainBranch();
+    if (!mainBranch) {
+      console.log(chalk.red('Could not determine main branch (main or master).'));
+      return;
+    }
+
+    // Confirm action
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: `Are you sure you want to finish hotfix '${hotfixBranch}', merge it into ${mainBranch} and develop, and create tag '${tagName}'?`,
+        default: false
+      }
+    ]);
+
+    if (!confirm) {
+      console.log(chalk.yellow('Operation canceled.'));
+      return;
+    }
+
+    stashChanges();
+    console.log(chalk.blue(`\nChecking out hotfix branch: ${hotfixBranch}`));
+    checkoutBranch(hotfixBranch);
+    console.log(chalk.blue(`\n Checking out ${mainBranch} branch`));
+    checkoutBranch(mainBranch);
+    console.log(chalk.blue(`\n Updating ${mainBranch} branch to latest`));
+    pullLatestChanges();
+    console.log(chalk.blue('\nChecking out develop branch'));
+    checkoutBranch('develop');
+    console.log(chalk.blue('\nUpdating develop branch to latest'));
+    pullLatestChanges();
+    console.log(chalk.blue(`\nChecking out ${mainBranch} branch`));
+    checkoutBranch(mainBranch);
+    console.log(chalk.blue(`\nMerging hotfix branch into ${mainBranch}`));
+    try {
+      mergeBranch(hotfixBranch);
+    }
+    catch (error) {
+      console.log(chalk.red(`Merge conflicts detected when merging hotfix into ${mainBranch}. Please resolve conflicts manually.`));
+      console.log(chalk.yellow(error.message));
+      return;
+    }
+
+
+    console.log(chalk.blue('\nChecking out develop branch'));
+    checkoutBranch('develop');
+
+    console.log(chalk.blue('\nMerging hotfix branch into develop'));
+    mergeBranch(hotfixBranch);
+    try {
+      mergeBranch(hotfixBranch);
+    }
+    catch (error) {
+      console.log(chalk.red(`Merge conflicts detected when merging hotfix into develop. Please resolve conflicts manually.`));
+      console.log(chalk.yellow(error.message));
+      return;
+    }
+    const tag = await listAndSelectTag();
+    await createTag(tag);
+    pushToRemote(mainBranch);
+    pushToRemote('develop');
+    pushToRemote(tagName);
+
+    console.log(chalk.blue('\nDeleting hotfix branch locally'));
+    let result = deleteLocalBranch(hotfixBranch, false);
+    if (!result.success) {
+      console.log(chalk.red(`Failed to delete local hotfix branch: ${result.message}`));
+      return;
+    }
+
+    console.log(chalk.blue('\nDeleting hotfix branch from remote'));
+    await deleteRemoteBranch(hotfixBranch)
+
+    console.log(chalk.blue('\n16. Checking out develop branch'));
+    checkoutBranch('develop');
+
+
+    console.log(chalk.green('\n✅ Hotfix successfully completed!'));
+
+  } catch (error) {
+    console.error(chalk.red('\nAn error occurred:'), error);
+  }
 }

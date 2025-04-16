@@ -1,6 +1,7 @@
 // api.mjs - Common git operations
 
 import {execSync} from 'child_process';
+import chalk from "chalk";
 
 /**
  * Check if the current directory is a Git repository
@@ -75,6 +76,23 @@ export function deleteLocalBranch(branchName, force = false) {
     };
   }
 }
+
+/**
+ * Delete a remote branch.
+ *
+ * @param {string} branch Branch to delete
+ * @param {string} remote Remote repository to delete from.
+ */
+export function deleteRemoteBranch(branch, remote = 'origin' ) {
+  try {
+    execSync(`git push ${remote} --delete ${branch}`);
+  }
+  catch (error) {
+    console.log(chalk.red(`Failed to delete remote hotfix branch: ${remoteDelError}`));
+    throw new Error(error.message);
+  }
+}
+
 
 /**
  * Get remote repositories
@@ -315,6 +333,27 @@ export function setUpstreamAndPush(remoteName = 'origin') {
 }
 
 /**
+ * Push branch to remote.
+ *
+ * @param branch
+ *   Branch to push to remote
+ * @param remoteName
+ *   Remote repository name defaults to 'origin'.
+ */
+export function pushToRemote(branch, remoteName = 'origin') {
+  const branches = getAllBranches();
+  const gitArtifactType = branches.includes(branch) ? 'branch' : 'tag';
+  try {
+    console.log(chalk.blue(`\nPushing ${branch} ${gitArtifactType}`));
+    execSync(`git push ${remoteName} ${branch}`);
+  }
+  catch (error) {
+      console.log(chalk.red(`Failed to push ${branch} ${gitArtifactType}: ${error.message}`));
+      throw new Error(error.message);
+  }
+}
+
+/**
  * Gets the main branch for the repository.
  *
  * Either a main or a master branch.
@@ -330,5 +369,32 @@ export function getMainBranch() {
     return branches.find(branch => branch.startsWith('main') || branch.startsWith('master'));
   } catch (error) {
     throw new Error('Failed to get main branch: ' + error.message);
+  }
+}
+
+export function mergeBranch(mergeBranch) {
+  const currentBranch = getCurrentBranch();
+  try {
+    execSync(`git merge --no-ff ${mergeBranch} -m "Merge ${mergeBranch} into ${currentBranch}"`);
+  }
+  catch (e) {
+    throw new Error(`Failed to merge ${mergeBranch} into ${currentBranch}: ${e.message}`);
+  }
+}
+
+/**
+ * Create a tag.
+ *
+ * @param tagName
+ */
+export async function createTag(tagName) {
+  console.log(chalk.blue(`\nCreating tag ${tagName}`));
+  try {
+    execSync(`git tag -a ${tagName} -m ${tagName}`);
+  }
+  catch (error) {
+    console.log(chalk.red(`Failed to create tag ${tagName}`));
+    console.log(chalk.yellow(error.message));
+    throw new Error(error.message);
   }
 }
