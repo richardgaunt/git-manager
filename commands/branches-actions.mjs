@@ -440,26 +440,48 @@ async function listAndSelectTag() {
  */
 export async function finishHotfix() {
   console.log(chalk.blue('\n=== Finish Hotfix ===\n'));
+  await doRelease('hotfix');
+}
 
+/**
+ * Finishes a release branch by merging it into master and develop,
+ * creating a tag, and cleaning up the release branch
+ */
+export async function finishRelease() {
+  console.log(chalk.blue('\n=== Finish Release ===\n'));
+  await doRelease('release');
+}
+
+/**
+ * Manage release or hotfix release process.
+ *
+ * @param type
+ * @returns {Promise<void>}
+ */
+async function doRelease(type) {
+  if (['hotfix', 'release'].indexOf(type) === -1) {
+    throw new Error(`Invalid release management type: ${type}`);
+  }
   try {
-    // Get hotfix branch
-    const hotfixBranches = getAllBranches().filter(branch => branch.startsWith('hotfix/'));
-    if (hotfixBranches.length === 0) {
+    // Get hotfix or release branch
+    const branchPrefix = type === 'hotfix' ? 'hotfix/' : 'release/';
+    const releaseBranches = getAllBranches().filter(branch => branch.startsWith(branchPrefix));
+    if (releaseBranches.length === 0) {
       console.log(chalk.yellow('No hotfix branches exist.'));
       return;
     }
-    const { hotfixBranch } = await inquirer.prompt([
+    const { releaseBranch } = await inquirer.prompt([
       {
         type: 'list',
-        name: 'hotfixBranch',
-        message: 'Select a hotfix branch to finish:',
-        choices: hotfixBranches,
+        name: 'releaseBranch',
+        message: `Select a ${type} branch to finish:`,
+        choices: releaseBranches,
       }
     ]);
 
-    console.log(chalk.yellow(`\nChecking out hotfix branch: ${hotfixBranch}`));
-    // Extract the hotfix version for tagging
-    const tagName = hotfixBranch.replace('hotfix/', '');
+    console.log(chalk.yellow(`\nChecking out ${type} branch: ${releaseBranch}`));
+    // Extract the release management version for tagging
+    const tagName = releaseBranch.replace(branchPrefix, '');
 
     // Get the main branch (main or master)
     const mainBranch = getMainBranch();
@@ -473,7 +495,7 @@ export async function finishHotfix() {
       {
         type: 'confirm',
         name: 'confirm',
-        message: `Are you sure you want to finish hotfix '${hotfixBranch}', merge it into ${mainBranch} and develop, and create tag '${tagName}'?`,
+        message: `Are you sure you want to finish ${type} '${releaseBranch}', merge it into ${mainBranch} and develop, and create tag '${tagName}'?`,
         default: false
       }
     ]);
@@ -484,8 +506,8 @@ export async function finishHotfix() {
     }
 
     stashChanges();
-    console.log(chalk.blue(`\nChecking out hotfix branch: ${hotfixBranch}`));
-    checkoutBranch(hotfixBranch);
+    console.log(chalk.blue(`\nChecking out ${type} branch: ${releaseBranch}`));
+    checkoutBranch(releaseBranch);
     console.log(chalk.blue(`\n Checking out ${mainBranch} branch`));
     checkoutBranch(mainBranch);
     console.log(chalk.blue(`\n Updating ${mainBranch} branch to latest`));
@@ -496,12 +518,12 @@ export async function finishHotfix() {
     pullLatestChanges();
     console.log(chalk.blue(`\nChecking out ${mainBranch} branch`));
     checkoutBranch(mainBranch);
-    console.log(chalk.blue(`\nMerging hotfix branch into ${mainBranch}`));
+    console.log(chalk.blue(`\nMerging ${type} branch into ${mainBranch}`));
     try {
-      mergeBranch(hotfixBranch);
+      mergeBranch(releaseBranch);
     }
     catch (error) {
-      console.log(chalk.red(`Merge conflicts detected when merging hotfix into ${mainBranch}. Please resolve conflicts manually.`));
+      console.log(chalk.red(`Merge conflicts detected when merging ${type} into ${mainBranch}. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
       return;
     }
@@ -510,13 +532,13 @@ export async function finishHotfix() {
     console.log(chalk.blue('\nChecking out develop branch'));
     checkoutBranch('develop');
 
-    console.log(chalk.blue('\nMerging hotfix branch into develop'));
-    mergeBranch(hotfixBranch);
+    console.log(chalk.blue('\nMerging ${type} branch into develop'));
+    mergeBranch(releaseBranch);
     try {
-      mergeBranch(hotfixBranch);
+      mergeBranch(releaseBranch);
     }
     catch (error) {
-      console.log(chalk.red(`Merge conflicts detected when merging hotfix into develop. Please resolve conflicts manually.`));
+      console.log(chalk.red(`Merge conflicts detected when merging ${type} into develop. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
       return;
     }
@@ -526,21 +548,21 @@ export async function finishHotfix() {
     pushToRemote('develop');
     pushToRemote(tagName);
 
-    console.log(chalk.blue('\nDeleting hotfix branch locally'));
-    let result = deleteLocalBranch(hotfixBranch, false);
+    console.log(chalk.blue(`\nDeleting ${type} branch locally`));
+    let result = deleteLocalBranch(releaseBranch, false);
     if (!result.success) {
-      console.log(chalk.red(`Failed to delete local hotfix branch: ${result.message}`));
+      console.log(chalk.red(`Failed to delete local ${type} branch: ${result.message}`));
       return;
     }
 
-    console.log(chalk.blue('\nDeleting hotfix branch from remote'));
-    await deleteRemoteBranch(hotfixBranch)
+    console.log(chalk.blue(`\nDeleting ${type} branch from remote`));
+    await deleteRemoteBranch(releaseBranch)
 
     console.log(chalk.blue('\n16. Checking out develop branch'));
     checkoutBranch('develop');
 
 
-    console.log(chalk.green('\n✅ Hotfix successfully completed!'));
+    console.log(chalk.green(`\n✅ ${type} successfully completed!`));
 
   } catch (error) {
     console.error(chalk.red('\nAn error occurred:'), error);

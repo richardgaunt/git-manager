@@ -83,6 +83,7 @@ export async function showInteractiveMenu() {
         {name: 'Delete local branches', value: 'delete-branches'},
         {name: 'Create feature branch', value: 'create-feature'},
         {name: 'Create a release', value: 'create-release'},
+        {name: 'Finish a release', value: 'finish-release'},
         {name: 'Create a hotfix', value: 'create-hotfix'},
         {name: 'Finish a hotfix', value: 'finish-hotfix'},
         {name: 'Exit', value: 'exit'}
@@ -116,6 +117,9 @@ export async function showInteractiveMenu() {
                 break;
             case 'create-release':
                 await commands.branches.createReleaseBranch()
+                break;
+            case 'finish-release':
+                await commands.branches.finishRelease();
                 break;
             case 'create-hotfix':
                 await commands.branches.createHotfix();
