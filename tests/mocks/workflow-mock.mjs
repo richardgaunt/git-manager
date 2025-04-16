@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 /**
  * Creates a mock Git repository state with specific branches and state
  * This helps test complex workflow functions that operate on Git state
- * 
+ *
  * @param {Object} state - Desired Git repository state
  * @param {string} state.currentBranch - Currently checked out branch
  * @param {string[]} state.branches - Available branches
@@ -26,33 +26,33 @@ export function createGitWorkflowMock(state = {}) {
     mainBranch: 'main',
     ...state
   };
-  
+
   // Stash simulation
   let stashed = false;
-  
+
   // Return mock implementations for Git API functions
   return {
     getCurrentBranch: jest.fn(() => repoState.currentBranch),
-    
+
     getLocalBranches: jest.fn(() => repoState.branches),
-    
+
     getAllBranches: jest.fn(() => {
       // Combine local and remote branches without duplicates
       const allBranches = [...repoState.branches];
-      
+
       Object.keys(repoState.remoteBranches).forEach(branch => {
         if (!allBranches.includes(branch)) {
           allBranches.push(branch);
         }
       });
-      
+
       return allBranches;
     }),
-    
+
     getStatus: jest.fn(() => {
       return repoState.hasChanges ? ' M file1.txt\n M file2.txt' : '';
     }),
-    
+
     stashChanges: jest.fn(message => {
       if (repoState.hasChanges) {
         stashed = true;
@@ -61,7 +61,7 @@ export function createGitWorkflowMock(state = {}) {
       }
       return false;
     }),
-    
+
     applyStash: jest.fn(pop => {
       if (stashed) {
         stashed = !pop;
@@ -70,9 +70,9 @@ export function createGitWorkflowMock(state = {}) {
       }
       throw new Error('No stash to apply');
     }),
-    
+
     hasStashes: jest.fn(() => stashed),
-    
+
     checkoutBranch: jest.fn(branchName => {
       if (repoState.branches.includes(branchName)) {
         repoState.currentBranch = branchName;
@@ -80,21 +80,21 @@ export function createGitWorkflowMock(state = {}) {
       }
       throw new Error(`Branch ${branchName} does not exist`);
     }),
-    
+
     createBranch: jest.fn((branchName, startPoint) => {
       repoState.branches.push(branchName);
       repoState.currentBranch = branchName;
       return true;
     }),
-    
+
     pullWithRebase: jest.fn((remote, branch) => true),
-    
+
     pullLatestChanges: jest.fn(() => 'Already up to date.'),
-    
+
     checkIfRemoteBranchExists: jest.fn(branchName => {
       return !!repoState.remoteBranches[branchName];
     }),
-    
+
     toKebabCase: jest.fn(text => {
       return text
         .trim()
@@ -102,9 +102,9 @@ export function createGitWorkflowMock(state = {}) {
         .replace(/[^\w\s-]/g, '')
         .replace(/[\s_]+/g, '-');
     }),
-    
+
     getMainBranch: jest.fn(() => repoState.mainBranch),
-    
+
     // Add other necessary mocks as needed
     deleteLocalBranch: jest.fn((branch, force) => ({ success: true, message: `Branch ${branch} deleted successfully` })),
     listTags: jest.fn(() => ['1.0.0', '0.9.0', '0.8.0']),
@@ -118,7 +118,7 @@ export function createGitWorkflowMock(state = {}) {
 
 /**
  * Creates a mock for inquirer to simulate user input in workflows
- * 
+ *
  * @param {Object} responses - Responses for each prompt
  * @returns {Object} - Mock inquirer module
  */
@@ -127,10 +127,10 @@ export function createInquirerWorkflowMock(responses = {}) {
     prompt: jest.fn(questions => {
       const questionArray = Array.isArray(questions) ? questions : [questions];
       const result = {};
-      
+
       questionArray.forEach(question => {
         const name = question.name;
-        
+
         if (responses[name] !== undefined) {
           // Use provided response
           result[name] = responses[name];
@@ -151,10 +151,10 @@ export function createInquirerWorkflowMock(responses = {}) {
           result[name] = 'mock-value';
         }
       });
-      
+
       return Promise.resolve(result);
     }),
-    
+
     registerPrompt: jest.fn()
   };
 }

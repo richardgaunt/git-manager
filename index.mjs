@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // index.mjs - Main entry point
 
-import {Command} from 'commander';
+import { Command } from 'commander';
 import chalk from 'chalk';
-import {isGitRepository} from './api.mjs';
-import {registerCommands, showInteractiveMenu} from './commands/index.mjs';
+import { isGitRepository } from './api.mjs';
+import { registerCommands, showInteractiveMenu } from './commands/index.mjs';
 
 // Check if current directory is a git repository
 if (!isGitRepository()) {
