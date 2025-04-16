@@ -1,6 +1,6 @@
 # Git Manager
 
-A powerful CLI tool to streamline Git workflow operations with an interactive interface.
+Git management tool with a few workflows mapped out.
 
 [![Tests](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml)
 [![Linting](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml)
