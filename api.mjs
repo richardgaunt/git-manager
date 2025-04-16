@@ -1,6 +1,6 @@
 // api.mjs - Common git operations
 
-import { execSync } from 'child_process';
+import {execSync} from 'child_process';
 
 /**
  * Check if the current directory is a Git repository
@@ -311,5 +311,24 @@ export function setUpstreamAndPush(remoteName = 'origin') {
       success: false,
       message: `Failed to set upstream and push: ${error.message}`
     };
+  }
+}
+
+/**
+ * Gets the main branch for the repository.
+ *
+ * Either a main or a master branch.
+ *
+ * @returns {string}
+ */
+export function getMainBranch() {
+  try {
+    const branches = getAllBranches();
+
+    // Check whether we are using main or master.
+    // Selects first one found.
+    return branches.find(branch => branch.startsWith('main') || branch.startsWith('master'));
+  } catch (error) {
+    throw new Error('Failed to get main branch: ' + error.message);
   }
 }

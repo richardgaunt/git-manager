@@ -17,7 +17,7 @@ import {
   createBranch,
   toKebabCase,
   applyStash,
-  listTags, setUpstreamAndPush
+  listTags, setUpstreamAndPush, getMainBranch
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -265,18 +265,7 @@ export async function createReleaseBranch() {
 
     await checkoutDevelop();
 
-    // Ask for branch name
-    const tags = (await listTags()).slice(0, 3);
-    console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
-    const { releaseTag } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'releaseTag',
-        message: 'Enter the release tag (e.g., 1.0.0):',
-        default: tags[0],
-        validate: input => !!input.trim() || 'Release tag is required'
-      }
-    ]);
+    await createTag();
 
     // Create kebab-case branch name
     const newBranchName = `release/${releaseTag}`;
@@ -286,7 +275,7 @@ export async function createReleaseBranch() {
     createBranch(newBranchName, 'develop');
 
     console.log(chalk.green(`\n✓ Successfully created a release branch: ${newBranchName}`));
-  
+
     setUpstreamAndPush();
     console.log(chalk.green(`\n✓ Successfully published release branch: ${newBranchName}`));
 
@@ -336,4 +325,103 @@ async function checkoutDevelop() {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
   }
+}
+
+/**
+ * Stashes staged changes, checks out main or master, gets latest changes.
+ * @returns {Promise<void>}
+ */
+async function checkoutMain() {
+  try {
+    // Get current branch for reference
+    const currentBranch = getCurrentBranch();
+    console.log(`Current branch: ${chalk.green(currentBranch)}`);
+
+    // Show current changes
+    const status = getStatus();
+    if (status.trim()) {
+      console.log('\nCurrent changes:');
+      console.log(status);
+    } else {
+      console.log('\nNo uncommitted changes detected.');
+    }
+
+    // Stash changes if needed
+    const hasChanges = status.trim().length > 0;
+
+    if (hasChanges) {
+      console.log(chalk.yellow('\nStashing current changes...'));
+      stashChanges();
+    }
+
+    const mainBranch = getMainBranch();
+
+    // Checkout develop branch.
+    console.log(chalk.yellow(`\nChecking out ${mainBranch} branch...`));
+    checkoutBranch(mainBranch);
+
+    // Pull with rebase
+    console.log(chalk.yellow(`\nUpdating ${mainBranch} branch with git pull --rebase...`));
+    pullWithRebase();
+  }
+  catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+
+/**
+ * Create a hotfix.
+ * @returns {Promise<void>}
+ */
+export async function createHotfix() {
+  try {
+    console.log(chalk.blue('\n=== Creating Release ===\n'));
+    console.log(chalk.blue('\nChecking to see if a release already exists...\n'));
+    const branches = getAllBranches();
+    const existingHotfixes = branches.filter(branch => branch.startsWith('hotfix/'));
+    if (existingHotfixes.length > 0) {
+      throw new Error(`A hotfix already exists. Please complete the following release(s): ${existingHotfixes.join(', ')}`);
+    }
+    else {
+      console.log(chalk.yellow('No release branches found.'));
+    }
+
+    await checkoutMain();
+
+    // Output recent tags.
+    await createTag();
+    // Create kebab-case branch name
+    const newBranchName = `hotfix/${releaseTag}`;
+
+    // Create and checkout the new branch
+    console.log(chalk.yellow(`\nCreating a new hotfix: ${newBranchName}`));
+    createBranch(newBranchName, getMainBranch());
+
+    console.log(chalk.green(`\n✓ Successfully created hotfix: ${newBranchName}`));
+
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Creates tags for branch.
+ *
+ * @returns {Promise<void>}
+ */
+async function createTag() {
+  const tags = (await listTags()).slice(0, 3);
+  console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
+  const { releaseTag } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'releaseTag',
+      message: 'Enter the release tag (e.g., 1.0.0):',
+      default: tags[0],
+      validate: input => !!input.trim() || 'Release tag is required'
+    }
+  ]);
 }

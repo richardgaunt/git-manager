@@ -53,6 +53,11 @@ export function registerCommands(program) {
         .description('Create a new release')
         .action(branches.createReleaseBranch);
 
+    program
+        .command('create-hotfix')
+        .description('Create a new hotfix branch')
+        .action(branches.createHotfix);
+
   // Add more command registrations here
 
   return program;
@@ -75,6 +80,7 @@ export async function showInteractiveMenu() {
         {name: 'Delete local branches', value: 'delete-branches'},
         {name: 'Create feature branch', value: 'create-feature'},
         {name: 'Create a release', value: 'create-release'},
+        {name: 'Create a hotfix', value: 'create-hotfix'},
         {name: 'Exit', value: 'exit'}
     ];
 
@@ -106,6 +112,9 @@ export async function showInteractiveMenu() {
                 break;
             case 'create-release':
                 await commands.branches.createReleaseBranch()
+                break;
+            case 'create-hotfix':
+                await commands.branches.createHotfix();
                 break;
             case 'exit':
                 exitRequested = true;
