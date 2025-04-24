@@ -23,7 +23,9 @@ import {
   mergeBranch,
   createTag,
   pushToRemote,
-  deleteRemoteBranch
+  deleteRemoteBranch,
+  getLatestCommits,
+  cherryPickCommit
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -559,5 +561,158 @@ async function doRelease(type) {
     console.log(chalk.green(`\n✅ ${type} successfully completed!`));
   } catch (error) {
     console.error(chalk.red('\nAn error occurred:'), error);
+  }
+}
+
+/**
+ * Cherry-pick a specific commit from another branch
+ */
+export async function cherryPickChanges() {
+  console.log(chalk.blue('\n=== Cherry Pick Changes ===\n'));
+  
+  try {
+    // Get the current branch for reference
+    const currentBranch = getCurrentBranch();
+    console.log(`Current branch: ${chalk.green(currentBranch)}`);
+    
+    // Check for uncommitted changes that should be stashed
+    const status = getStatus();
+    let changesStashed = false;
+    
+    if (status.trim()) {
+      console.log('\nUncommitted changes detected:');
+      console.log(status);
+      
+      console.log(chalk.yellow('\nStashing current changes...'));
+      changesStashed = stashChanges('Auto stash before cherry-picking');
+    }
+    
+    // Get all branches to choose from
+    const branches = getAllBranches()
+      .filter(branch => branch !== currentBranch); // Remove current branch from list
+    
+    if (branches.length === 0) {
+      console.log(chalk.yellow('No other branches available to cherry-pick from.'));
+      return;
+    }
+    
+    // Select branch to cherry-pick from
+    const { selectedBranch } = await inquirer.prompt([
+      {
+        type: 'autocomplete',
+        name: 'selectedBranch',
+        message: 'Select a branch to cherry-pick from:',
+        source: (answersSoFar, input = '') => {
+          if (!input) {
+            return Promise.resolve(branches);
+          }
+          
+          const filtered = branches.filter(branch =>
+            branch.toLowerCase().includes(input.toLowerCase())
+          );
+          
+          return Promise.resolve(filtered);
+        },
+        pageSize: 15
+      }
+    ]);
+    
+    console.log(chalk.yellow(`\nFetching latest commits from branch: ${selectedBranch}`));
+    
+    // Let's checkout the branch temporarily to get commits if needed
+    const tempCheckout = selectedBranch !== currentBranch;
+    
+    if (tempCheckout) {
+      checkoutBranch(selectedBranch);
+    }
+    
+    // Get the latest commits from the selected branch
+    const commits = getLatestCommits(20);
+    
+    // Go back to the original branch if we temporarily switched
+    if (tempCheckout) {
+      checkoutBranch(currentBranch);
+    }
+    
+    if (commits.length === 0) {
+      console.log(chalk.yellow('No commits found on the selected branch.'));
+      
+      // Apply stashed changes if needed
+      if (changesStashed) {
+        console.log(chalk.yellow('\nApplying stashed changes...'));
+        applyStash();
+      }
+      
+      return;
+    }
+    
+    // Format commits for display
+    const commitChoices = commits.map((commit) => ({
+      name: `${commit.hash} - ${commit.date} - ${commit.message} (${commit.author})`,
+      value: commit.hash
+    }));
+    
+    // Select commit to cherry-pick
+    const { selectedCommit } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'selectedCommit',
+        message: 'Select a commit to cherry-pick:',
+        choices: commitChoices,
+        pageSize: 15
+      }
+    ]);
+    
+    // Confirm the cherry-pick
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: `Are you sure you want to cherry-pick commit ${selectedCommit}?`,
+        default: false
+      }
+    ]);
+    
+    if (!confirm) {
+      console.log(chalk.yellow('Cherry-pick operation canceled.'));
+      
+      // Apply stashed changes if needed
+      if (changesStashed) {
+        console.log(chalk.yellow('\nApplying stashed changes...'));
+        applyStash();
+      }
+      
+      return;
+    }
+    
+    // Execute cherry-pick
+    console.log(chalk.yellow(`\nCherry-picking commit ${selectedCommit}...`));
+    const result = cherryPickCommit(selectedCommit);
+    
+    if (result.success) {
+      console.log(chalk.green(result.message));
+    } else {
+      console.log(chalk.red(result.message));
+      console.log(chalk.yellow('\nYou may need to resolve conflicts and then run:'));
+      console.log(chalk.dim('git cherry-pick --continue'));
+    }
+    
+    // Apply stashed changes if needed
+    if (changesStashed) {
+      console.log(chalk.yellow('\nApplying stashed changes...'));
+      
+      try {
+        applyStash();
+        console.log(chalk.green('Successfully applied stashed changes.'));
+      } catch (error) {
+        console.log(chalk.red('Error applying stashed changes. You may need to apply them manually.'));
+        console.log(chalk.yellow('Use: git stash apply'));
+      }
+    }
+    
+    console.log(chalk.green('\n✓ Cherry-pick operation completed.'));
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
   }
 }
