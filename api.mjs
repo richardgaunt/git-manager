@@ -418,6 +418,41 @@ export function cherryPickCommit(commitHash) {
 }
 
 /**
+ * Squash and merge a feature branch into the current branch
+ * @param {string} featureBranch The feature branch to squash and merge
+ * @param {string} commitMessage The commit message for the squashed merge
+ * @returns {object} Result of the operation
+ */
+export function squashAndMergeBranch(featureBranch, commitMessage) {
+  try {
+    // Using --squash flag to squash all commits from the feature branch into one
+    execSync(`git merge --squash ${featureBranch}`, { encoding: 'utf8' });
+    
+    // Create the commit with the provided message
+    execSync(`git commit -m "${commitMessage}"`, { encoding: 'utf8' });
+    
+    return {
+      success: true,
+      message: `Successfully squash merged branch ${featureBranch}`
+    };
+  } catch (error) {
+    // Check if it's a merge conflict
+    if (error.message.includes('Automatic merge failed')) {
+      return {
+        success: false,
+        message: `Merge conflicts detected. Please resolve conflicts manually and commit.`,
+        isConflict: true
+      };
+    }
+    
+    return {
+      success: false,
+      message: `Failed to squash merge branch ${featureBranch}: ${error.message}`
+    };
+  }
+}
+
+/**
  * Create a tag.
  *
  * @param tagName

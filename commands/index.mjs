@@ -67,6 +67,11 @@ export function registerCommands(program) {
     .command('cherry-pick')
     .description('Cherry-pick a specific commit from another branch')
     .action(branches.cherryPickChanges);
+    
+  program
+    .command('squash-merge')
+    .description('Squash and merge a feature branch into the current branch')
+    .action(branches.squashAndMergeFeatureBranch);
 
   return program;
 }
@@ -92,6 +97,7 @@ export async function showInteractiveMenu() {
     { name: 'Create a hotfix', value: 'create-hotfix' },
     { name: 'Finish a hotfix', value: 'finish-hotfix' },
     { name: 'Cherry pick a commit', value: 'cherry-pick' },
+    { name: 'Squash and merge a feature branch', value: 'squash-merge' },
     { name: 'Exit', value: 'exit' }
   ];
 
@@ -135,6 +141,9 @@ export async function showInteractiveMenu() {
         break;
       case 'cherry-pick':
         await commands.branches.cherryPickChanges();
+        break;
+      case 'squash-merge':
+        await commands.branches.squashAndMergeFeatureBranch();
         break;
       case 'exit':
         exitRequested = true;

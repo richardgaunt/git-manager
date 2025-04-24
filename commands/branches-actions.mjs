@@ -25,7 +25,8 @@ import {
   pushToRemote,
   deleteRemoteBranch,
   getLatestCommits,
-  cherryPickCommit
+  cherryPickCommit,
+  squashAndMergeBranch
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -706,6 +707,135 @@ export async function cherryPickChanges() {
     }
     
     console.log(chalk.green('\n✓ Cherry-pick operation completed.'));
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Squash and merge a feature branch into the current branch
+ */
+export async function squashAndMergeFeatureBranch() {
+  console.log(chalk.blue('\n=== Squash and Merge Feature Branch ===\n'));
+  
+  try {
+    // Get the current branch for reference
+    const currentBranch = getCurrentBranch();
+    console.log(`Current branch: ${chalk.green(currentBranch)}`);
+    
+    // Check for uncommitted changes that should be stashed
+    const status = getStatus();
+    let changesStashed = false;
+    
+    if (status.trim()) {
+      console.log('\nUncommitted changes detected:');
+      console.log(status);
+      
+      console.log(chalk.yellow('\nStashing current changes...'));
+      changesStashed = stashChanges('Auto stash before squash merge');
+    }
+    
+    // Get all branches to choose from (except current branch)
+    const branches = getAllBranches()
+      .filter(branch => branch !== currentBranch) 
+      .filter(branch => branch.startsWith('feature/')); // Only show feature branches
+    
+    if (branches.length === 0) {
+      console.log(chalk.yellow('No feature branches available to squash and merge.'));
+      
+      // Apply stashed changes if needed
+      if (changesStashed) {
+        console.log(chalk.yellow('\nApplying stashed changes...'));
+        applyStash();
+      }
+      
+      return;
+    }
+    
+    // Select branch to squash and merge
+    const { selectedBranch } = await inquirer.prompt([
+      {
+        type: 'autocomplete',
+        name: 'selectedBranch',
+        message: 'Select a feature branch to squash and merge:',
+        source: (answersSoFar, input = '') => {
+          if (!input) {
+            return Promise.resolve(branches);
+          }
+          
+          const filtered = branches.filter(branch =>
+            branch.toLowerCase().includes(input.toLowerCase())
+          );
+          
+          return Promise.resolve(filtered);
+        },
+        pageSize: 15
+      }
+    ]);
+    
+    // Get the commit message
+    const { commitMessage } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'commitMessage',
+        message: 'Enter a commit message for the squashed changes:',
+        default: `Squash merge ${selectedBranch} into ${currentBranch}`,
+        validate: input => !!input.trim() || 'Commit message is required'
+      }
+    ]);
+    
+    // Confirm the squash merge
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: `Are you sure you want to squash and merge branch ${selectedBranch}?`,
+        default: false
+      }
+    ]);
+    
+    if (!confirm) {
+      console.log(chalk.yellow('Squash merge operation canceled.'));
+      
+      // Apply stashed changes if needed
+      if (changesStashed) {
+        console.log(chalk.yellow('\nApplying stashed changes...'));
+        applyStash();
+      }
+      
+      return;
+    }
+    
+    // Execute squash merge
+    console.log(chalk.yellow(`\nSquash merging branch ${selectedBranch}...`));
+    const result = squashAndMergeBranch(selectedBranch, commitMessage);
+    
+    if (result.success) {
+      console.log(chalk.green(result.message));
+    } else {
+      console.log(chalk.red(result.message));
+      
+      if (result.isConflict) {
+        console.log(chalk.yellow('\nMerge conflicts detected. Please resolve them manually and then commit.'));
+        console.log(chalk.dim('After resolving conflicts, run: git commit -m "Your commit message"'));
+      }
+    }
+    
+    // Apply stashed changes if needed (only if no conflicts)
+    if (changesStashed && result.success) {
+      console.log(chalk.yellow('\nApplying stashed changes...'));
+      
+      try {
+        applyStash();
+        console.log(chalk.green('Successfully applied stashed changes.'));
+      } catch (error) {
+        console.log(chalk.red('Error applying stashed changes. You may need to apply them manually.'));
+        console.log(chalk.yellow('Use: git stash apply'));
+      }
+    }
+    
+    console.log(chalk.green('\n✓ Squash merge operation completed.'));
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;

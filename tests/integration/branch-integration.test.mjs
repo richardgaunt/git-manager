@@ -14,7 +14,8 @@ import {
   createBranch,
   toKebabCase,
   cherryPickCommit,
-  getLatestCommits
+  getLatestCommits,
+  squashAndMergeBranch
 } from '../../api.mjs';
 
 // Test integration between branch-related commands and actual git operations
@@ -148,5 +149,60 @@ describe('Branch Operations Integration', () => {
     execSync('git log -n 1 --pretty=format:"%h" -- cherry-file.txt', { encoding: 'utf8' });
     
     // If we get here without error, the commit with our cherry-picked file exists
+  });
+  
+  test('squash and merge functionality works using API functions', () => {
+    // We're using the imported squashAndMergeBranch function
+    
+    // Create a feature branch with multiple commits
+    createBranch('feature/squash-source');
+    
+    // Create first file and commit
+    createFileWithChanges(testRepo.path, 'squash-file1.txt', 'Squash file 1 content', true);
+    execSync('git commit -m "Add first file for squash merging"', { cwd: testRepo.path });
+    
+    // Create second file and commit
+    createFileWithChanges(testRepo.path, 'squash-file2.txt', 'Squash file 2 content', true);
+    execSync('git commit -m "Add second file for squash merging"', { cwd: testRepo.path });
+    
+    // Create third file and commit
+    createFileWithChanges(testRepo.path, 'squash-file3.txt', 'Squash file 3 content', true);
+    execSync('git commit -m "Add third file for squash merging"', { cwd: testRepo.path });
+    
+    // Return to main branch for squash merge
+    checkoutBranch('main');
+    
+    // Verify the files don't exist on main branch
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file1.txt'))).toBe(false);
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file2.txt'))).toBe(false);
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file3.txt'))).toBe(false);
+    
+    // Count commits before squash merge
+    const commitsBefore = getLatestCommits(10).length;
+    
+    // Execute squash merge
+    const commitMessage = 'Squash merged feature branch';
+    const result = squashAndMergeBranch('feature/squash-source', commitMessage);
+    
+    // Verify the operation was successful
+    expect(result.success).toBe(true);
+    
+    // Verify all files now exist on main branch
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file1.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file2.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(testRepo.path, 'squash-file3.txt'))).toBe(true);
+    
+    // Verify file contents
+    expect(fs.readFileSync(path.join(testRepo.path, 'squash-file1.txt'), 'utf8')).toBe('Squash file 1 content');
+    expect(fs.readFileSync(path.join(testRepo.path, 'squash-file2.txt'), 'utf8')).toBe('Squash file 2 content');
+    expect(fs.readFileSync(path.join(testRepo.path, 'squash-file3.txt'), 'utf8')).toBe('Squash file 3 content');
+    
+    // Count commits after squash merge (should be only 1 more than before)
+    const commitsAfter = getLatestCommits(10).length;
+    expect(commitsAfter).toBe(commitsBefore + 1);
+    
+    // Verify the commit message
+    const latestCommit = getLatestCommits(1)[0];
+    expect(latestCommit.message).toBe(commitMessage);
   });
 });
