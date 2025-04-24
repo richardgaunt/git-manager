@@ -418,22 +418,20 @@ export function cherryPickCommit(commitHash) {
 }
 
 /**
- * Squash and merge a feature branch into the current branch
- * @param {string} featureBranch The feature branch to squash and merge
- * @param {string} commitMessage The commit message for the squashed merge
+ * Merge a feature branch into the current branch
+ * @param {string} featureBranch The feature branch to merge
+ * @param {string} commitMessage The commit message for the merge
  * @returns {object} Result of the operation
  */
-export function squashAndMergeBranch(featureBranch, commitMessage) {
+export function mergeFeatureBranch(featureBranch, commitMessage) {
   try {
-    // Using --squash flag to squash all commits from the feature branch into one
-    execSync(`git merge --squash ${featureBranch}`, { encoding: 'utf8' });
-    
-    // Create the commit with the provided message
-    execSync(`git commit -m "${commitMessage}"`, { encoding: 'utf8' });
+    // Merge the feature branch with the provided commit message
+    // Using --no-ff to ensure a merge commit is created
+    execSync(`git merge --no-ff ${featureBranch} -m "${commitMessage}"`, { encoding: 'utf8' });
     
     return {
       success: true,
-      message: `Successfully squash merged branch ${featureBranch}`
+      message: `Successfully merged branch ${featureBranch}`
     };
   } catch (error) {
     // Check if it's a merge conflict
@@ -447,7 +445,7 @@ export function squashAndMergeBranch(featureBranch, commitMessage) {
     
     return {
       success: false,
-      message: `Failed to squash merge branch ${featureBranch}: ${error.message}`
+      message: `Failed to merge branch ${featureBranch}: ${error.message}`
     };
   }
 }

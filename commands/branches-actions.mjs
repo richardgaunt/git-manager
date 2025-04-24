@@ -26,7 +26,7 @@ import {
   deleteRemoteBranch,
   getLatestCommits,
   cherryPickCommit,
-  squashAndMergeBranch
+  mergeFeatureBranch
 } from '../api.mjs';
 
 inquirer.registerPrompt('autocomplete', inquirerAutocomplete);
@@ -714,10 +714,10 @@ export async function cherryPickChanges() {
 }
 
 /**
- * Squash and merge a feature branch into the current branch
+ * Merge a feature branch into the current branch
  */
-export async function squashAndMergeFeatureBranch() {
-  console.log(chalk.blue('\n=== Squash and Merge Feature Branch ===\n'));
+export async function mergeFeatureBranchCommand() {
+  console.log(chalk.blue('\n=== Merge Feature Branch ===\n'));
   
   try {
     // Get the current branch for reference
@@ -733,7 +733,7 @@ export async function squashAndMergeFeatureBranch() {
       console.log(status);
       
       console.log(chalk.yellow('\nStashing current changes...'));
-      changesStashed = stashChanges('Auto stash before squash merge');
+      changesStashed = stashChanges('Auto stash before merge');
     }
     
     // Get all branches to choose from (except current branch)
@@ -742,7 +742,7 @@ export async function squashAndMergeFeatureBranch() {
       .filter(branch => branch.startsWith('feature/')); // Only show feature branches
     
     if (branches.length === 0) {
-      console.log(chalk.yellow('No feature branches available to squash and merge.'));
+      console.log(chalk.yellow('No feature branches available to merge.'));
       
       // Apply stashed changes if needed
       if (changesStashed) {
@@ -753,12 +753,12 @@ export async function squashAndMergeFeatureBranch() {
       return;
     }
     
-    // Select branch to squash and merge
+    // Select branch to merge
     const { selectedBranch } = await inquirer.prompt([
       {
         type: 'autocomplete',
         name: 'selectedBranch',
-        message: 'Select a feature branch to squash and merge:',
+        message: 'Select a feature branch to merge:',
         source: (answersSoFar, input = '') => {
           if (!input) {
             return Promise.resolve(branches);
@@ -779,37 +779,15 @@ export async function squashAndMergeFeatureBranch() {
       {
         type: 'input',
         name: 'commitMessage',
-        message: 'Enter a commit message for the squashed changes:',
-        default: `Squash merge ${selectedBranch} into ${currentBranch}`,
+        message: 'Enter a commit message for the merge:',
+        default: `Merge branch '${selectedBranch}' into '${currentBranch}'`,
         validate: input => !!input.trim() || 'Commit message is required'
       }
     ]);
     
-    // Confirm the squash merge
-    const { confirm } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirm',
-        message: `Are you sure you want to squash and merge branch ${selectedBranch}?`,
-        default: false
-      }
-    ]);
-    
-    if (!confirm) {
-      console.log(chalk.yellow('Squash merge operation canceled.'));
-      
-      // Apply stashed changes if needed
-      if (changesStashed) {
-        console.log(chalk.yellow('\nApplying stashed changes...'));
-        applyStash();
-      }
-      
-      return;
-    }
-    
-    // Execute squash merge
-    console.log(chalk.yellow(`\nSquash merging branch ${selectedBranch}...`));
-    const result = squashAndMergeBranch(selectedBranch, commitMessage);
+    // Execute merge
+    console.log(chalk.yellow(`\nMerging branch ${selectedBranch}...`));
+    const result = mergeFeatureBranch(selectedBranch, commitMessage);
     
     if (result.success) {
       console.log(chalk.green(result.message));
@@ -835,7 +813,7 @@ export async function squashAndMergeFeatureBranch() {
       }
     }
     
-    console.log(chalk.green('\n✓ Squash merge operation completed.'));
+    console.log(chalk.green('\n✓ Merge operation completed.'));
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
