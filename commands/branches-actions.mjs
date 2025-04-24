@@ -204,6 +204,14 @@ export async function createFeatureBranch() {
   console.log(chalk.blue('\n=== Creating Feature Branch ===\n'));
 
   try {
+    // Stash changes if needed
+    const hasChanges = status.trim().length > 0;
+
+    if (hasChanges) {
+      console.log(chalk.yellow('\nStashing current changes...'));
+      stashChanges();
+    }
+
     await checkoutDevelop();
 
     // Ask for issue number
@@ -264,6 +272,12 @@ export async function createReleaseBranch() {
     } else {
       console.log(chalk.yellow('No release branches found.'));
     }
+    const hasChanges = status.trim().length > 0;
+
+    if (hasChanges) {
+      console.log(chalk.yellow('\nStashing current changes...'));
+      stashChanges();
+    }
 
     await checkoutDevelop();
 
@@ -303,15 +317,6 @@ async function checkoutDevelop() {
       console.log(status);
     } else {
       console.log('\nNo uncommitted changes detected.');
-    }
-
-    // Stash changes if needed
-    const hasChanges = status.trim().length > 0;
-    let changesStashed = false;
-
-    if (hasChanges) {
-      console.log(chalk.yellow('\nStashing current changes...'));
-      changesStashed = stashChanges();
     }
 
     // Checkout develop branch.
