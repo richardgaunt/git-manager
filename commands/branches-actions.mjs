@@ -560,7 +560,7 @@ async function doRelease(type) {
 }
 
 /**
- * Cherry-pick commits from other branches
+ * Cherry-pick a specific commit from another branch
  */
 export async function cherryPickChanges() {
   console.log(chalk.blue('\n=== Cherry Pick Changes ===\n'));

@@ -65,7 +65,7 @@ export function registerCommands(program) {
     
   program
     .command('cherry-pick')
-    .description('Cherry-pick a commit from another branch')
+    .description('Cherry-pick a specific commit from another branch')
     .action(branches.cherryPickChanges);
 
   return program;
@@ -91,7 +91,7 @@ export async function showInteractiveMenu() {
     { name: 'Finish a release', value: 'finish-release' },
     { name: 'Create a hotfix', value: 'create-hotfix' },
     { name: 'Finish a hotfix', value: 'finish-hotfix' },
-    { name: 'Cherry pick changes', value: 'cherry-pick' },
+    { name: 'Cherry pick a commit', value: 'cherry-pick' },
     { name: 'Exit', value: 'exit' }
   ];
 
