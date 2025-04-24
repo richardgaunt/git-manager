@@ -377,6 +377,47 @@ export function mergeBranch(mergeBranch) {
 }
 
 /**
+ * Get the latest commits from the specified branch
+ * @param {number} limit Number of commits to retrieve
+ * @returns {Array} Array of commit objects with hash and message
+ */
+export function getLatestCommits(limit = 20) {
+  try {
+    const output = execSync(`git log -n ${limit} --pretty=format:"%h||%s||%an||%ad" --date=short`, { encoding: 'utf8' });
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map(line => {
+        const [hash, message, author, date] = line.split('||');
+        return { hash, message, author, date };
+      });
+  } catch (error) {
+    throw new Error('Failed to get latest commits: ' + error.message);
+  }
+}
+
+/**
+ * Cherry-pick a specific commit to the current branch
+ * @param {string} commitHash The hash of the commit to cherry-pick
+ * @returns {object} Result of the operation
+ */
+export function cherryPickCommit(commitHash) {
+  try {
+    // Use -x flag to add a reference to the original commit
+    execSync(`git cherry-pick -x ${commitHash}`, { encoding: 'utf8' });
+    return { 
+      success: true, 
+      message: `Successfully cherry-picked commit ${commitHash}`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to cherry-pick commit ${commitHash}: ${error.message}`
+    };
+  }
+}
+
+/**
  * Create a tag.
  *
  * @param tagName

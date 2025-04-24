@@ -12,7 +12,9 @@ import {
   getLocalBranches,
   checkoutBranch,
   createBranch,
-  toKebabCase
+  toKebabCase,
+  cherryPickCommit,
+  getLatestCommits
 } from '../../api.mjs';
 
 // Test integration between branch-related commands and actual git operations
@@ -102,5 +104,35 @@ describe('Branch Operations Integration', () => {
     expect(getCurrentBranch()).toBe('feature/branch2');
     expect(fs.existsSync(path.join(testRepo.path, 'branch1.txt'))).toBe(false);
     expect(fs.existsSync(path.join(testRepo.path, 'branch2.txt'))).toBe(true);
+  });
+  
+  test('cherry-pick functionality works using API functions', () => {
+    // Create a feature branch with a unique commit
+    createBranch('feature/cherry-source');
+    createFileWithChanges(testRepo.path, 'cherry-file.txt', 'Cherry pick content', true);
+    execSync('git commit -m "Add file for cherry-picking"', { cwd: testRepo.path });
+    
+    // Get the commit hash of the commit we'll cherry-pick
+    const commits = getLatestCommits(1);
+    expect(commits.length).toBe(1);
+    const commitToPick = commits[0].hash;
+    
+    // Create another branch to cherry-pick to
+    checkoutBranch('main');
+    createBranch('feature/cherry-target');
+    
+    // Verify the file doesn't exist on this branch
+    expect(fs.existsSync(path.join(testRepo.path, 'cherry-file.txt'))).toBe(false);
+    
+    // Cherry-pick the commit
+    const result = cherryPickCommit(commitToPick);
+    expect(result.success).toBe(true);
+    
+    // Verify the file now exists on the target branch
+    expect(fs.existsSync(path.join(testRepo.path, 'cherry-file.txt'))).toBe(true);
+    
+    // Check that the content is correct
+    const fileContent = fs.readFileSync(path.join(testRepo.path, 'cherry-file.txt'), 'utf8');
+    expect(fileContent).toBe('Cherry pick content');
   });
 });
