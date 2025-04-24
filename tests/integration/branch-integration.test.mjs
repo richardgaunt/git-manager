@@ -14,7 +14,8 @@ import {
   createBranch,
   toKebabCase,
   cherryPickCommit,
-  getLatestCommits
+  getLatestCommits,
+  mergeFeatureBranch
 } from '../../api.mjs';
 
 // Test integration between branch-related commands and actual git operations
@@ -148,5 +149,59 @@ describe('Branch Operations Integration', () => {
     execSync('git log -n 1 --pretty=format:"%h" -- cherry-file.txt', { encoding: 'utf8' });
     
     // If we get here without error, the commit with our cherry-picked file exists
+  });
+  
+  test('merge feature branch functionality works using API functions', () => {
+    // Create a feature branch with multiple commits
+    createBranch('feature/merge-source');
+    
+    // Create first file and commit
+    createFileWithChanges(testRepo.path, 'merge-file1.txt', 'Merge file 1 content', true);
+    execSync('git commit -m "Add first file for merging"', { cwd: testRepo.path });
+    
+    // Create second file and commit
+    createFileWithChanges(testRepo.path, 'merge-file2.txt', 'Merge file 2 content', true);
+    execSync('git commit -m "Add second file for merging"', { cwd: testRepo.path });
+    
+    // Create third file and commit
+    createFileWithChanges(testRepo.path, 'merge-file3.txt', 'Merge file 3 content', true);
+    execSync('git commit -m "Add third file for merging"', { cwd: testRepo.path });
+    
+    // Return to main branch for merge
+    checkoutBranch('main');
+    
+    // Verify the files don't exist on main branch
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file1.txt'))).toBe(false);
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file2.txt'))).toBe(false);
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file3.txt'))).toBe(false);
+    
+    // Count commits before merge
+    const commitsBefore = getLatestCommits(10).length;
+    
+    // Execute merge
+    const commitMessage = 'Merge feature branch';
+    const result = mergeFeatureBranch('feature/merge-source', commitMessage);
+    
+    // Verify the operation was successful
+    expect(result.success).toBe(true);
+    
+    // Verify all files now exist on main branch
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file1.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file2.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(testRepo.path, 'merge-file3.txt'))).toBe(true);
+    
+    // Verify file contents
+    expect(fs.readFileSync(path.join(testRepo.path, 'merge-file1.txt'), 'utf8')).toBe('Merge file 1 content');
+    expect(fs.readFileSync(path.join(testRepo.path, 'merge-file2.txt'), 'utf8')).toBe('Merge file 2 content');
+    expect(fs.readFileSync(path.join(testRepo.path, 'merge-file3.txt'), 'utf8')).toBe('Merge file 3 content');
+    
+    // Count commits after merge (should be one merge commit plus the original commits)
+    const commitsAfter = getLatestCommits(10).length;
+    expect(commitsAfter).toBeGreaterThan(commitsBefore);
+    
+    // Verify at least one of the recent commits has our merge message
+    const recentCommits = getLatestCommits(5);
+    const hasMergeCommit = recentCommits.some(commit => commit.message.includes(commitMessage));
+    expect(hasMergeCommit).toBe(true);
   });
 });
