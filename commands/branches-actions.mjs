@@ -486,7 +486,7 @@ async function doRelease(type) {
       {
         type: 'confirm',
         name: 'confirm',
-        message: `Are you sure you want to finish ${type} '${releaseBranch}', merge it into ${mainBranch} and develop, and create tag '${tagName}'?`,
+        message: `Are you sure you want to finish ${type} '${releaseBranch}', merge it into ${mainBranch} and develop?`,
         default: false
       }
     ]);
@@ -495,6 +495,16 @@ async function doRelease(type) {
       console.log(chalk.yellow('Operation canceled.'));
       return;
     }
+    
+    // Ask if user wants to create a tag
+    const { createTagConfirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'createTagConfirm',
+        message: `Do you want to create a tag '${tagName}'?`,
+        default: true
+      }
+    ]);
 
     stashChanges();
     console.log(chalk.blue(`\nChecking out ${type} branch: ${releaseBranch}`));
@@ -531,11 +541,16 @@ async function doRelease(type) {
       console.log(chalk.yellow(error.message));
       return;
     }
-    const tag = await listAndSelectTag();
-    await createTag(tag);
-    pushToRemote(mainBranch);
-    pushToRemote('develop');
-    pushToRemote(tagName);
+    if (createTagConfirm) {
+      const tag = await listAndSelectTag();
+      await createTag(tag);
+      pushToRemote(mainBranch);
+      pushToRemote('develop');
+      pushToRemote(tagName);
+    } else {
+      pushToRemote(mainBranch);
+      pushToRemote('develop');
+    }
 
     console.log(chalk.blue(`\nDeleting ${type} branch locally`));
     const result = deleteLocalBranch(releaseBranch, false);
