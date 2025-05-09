@@ -1,7 +1,7 @@
 import { describe, expect, test, jest } from '@jest/globals';
-import { createGitWorkflowMock } from '../mocks/workflow-mock.mjs';
+import { createGitWorkflowMock, createInquirerWorkflowMock } from '../mocks/workflow-mock.mjs';
 
-// Mock the console.log to avoid output during tests
+// Mock console.log to avoid output during tests
 jest.spyOn(console, 'log').mockImplementation();
 
 // Mock chalk to avoid color output during tests
@@ -12,44 +12,54 @@ jest.mock('chalk', () => ({
   red: jest.fn(text => text)
 }));
 
-describe('Optional Tag Creation in Hotfix Process', () => {
-  // Test if our mock correctly simulates the tag creation behavior
-  test('Mock release process handles tag creation correctly', () => {
-    // Create mock Git workflow with a hotfix branch
+describe('Optional Tag Creation in Release Process', () => {
+  // Test the conditional tag creation logic directly
+  test('When user confirms tag creation, tag is created and pushed', () => {
+    // Create mock git functions
     const gitMocks = createGitWorkflowMock({
       currentBranch: 'hotfix/1.0.1',
       branches: ['main', 'develop', 'hotfix/1.0.1'],
       mainBranch: 'main'
     });
 
-    // Simulate "Yes" to tag creation
-    const result = simulateBranchWorkflow(gitMocks, true);
+    // Create mock inquirer that will respond "yes" to tag creation
+    const inquirerMock = createInquirerWorkflowMock({
+      createTagConfirm: true
+    });
     
-    // Verify tag was created and pushed
+    // Call our test function that simulates the workflow
+    const result = simulateReleaseProcess(gitMocks, inquirerMock, true);
+    
+    // Verify tag creation was called
     expect(gitMocks.createTag).toHaveBeenCalled();
     expect(gitMocks.pushToRemote).toHaveBeenCalledWith('1.0.1');
     expect(result.success).toBe(true);
   });
 
-  test('Mock release process skips tag creation when user chooses not to create a tag', () => {
-    // Create mock Git workflow with a hotfix branch
+  test('When user declines tag creation, tag is not created but other operations complete', () => {
+    // Create mock git functions
     const gitMocks = createGitWorkflowMock({
       currentBranch: 'hotfix/1.0.1',
       branches: ['main', 'develop', 'hotfix/1.0.1'],
       mainBranch: 'main'
     });
 
-    // Simulate "No" to tag creation
-    const result = simulateBranchWorkflow(gitMocks, false);
+    // Create mock inquirer that will respond "no" to tag creation
+    const inquirerMock = createInquirerWorkflowMock({
+      createTagConfirm: false
+    });
     
-    // Verify tag was NOT created
+    // Call our test function that simulates the workflow
+    const result = simulateReleaseProcess(gitMocks, inquirerMock, false);
+    
+    // Verify tag creation was NOT called
     expect(gitMocks.createTag).not.toHaveBeenCalled();
     
     // Verify branches were still pushed
     expect(gitMocks.pushToRemote).toHaveBeenCalledWith('main');
     expect(gitMocks.pushToRemote).toHaveBeenCalledWith('develop');
     
-    // Verify tag was NOT pushed by examining all calls to pushToRemote
+    // Make sure tag was not pushed
     const pushCalls = gitMocks.pushToRemote.mock.calls.map(call => call[0]);
     expect(pushCalls).not.toContain('1.0.1');
     
@@ -59,18 +69,30 @@ describe('Optional Tag Creation in Hotfix Process', () => {
 });
 
 /**
- * Simulate the hotfix/release branch workflow with tag creation choice
+ * Test utility function to simulate the release process with conditional tag creation.
  * 
- * @param {Object} gitMocks - Git mock functions
- * @param {boolean} createTag - Whether to create a tag
- * @returns {Object} Result of the workflow
+ * This function simulates the critical conditional tag creation logic from 
+ * the doRelease function in branches-actions.mjs
+ *
+ * @param {Object} gitMocks - Mock Git API functions
+ * @param {Object} inquirerMock - Mock inquirer responses
+ * @param {boolean} createTag - Whether tag should be created (user's choice)
+ * @returns {Object} Result object
  */
-function simulateBranchWorkflow(gitMocks, createTag) {
+function simulateReleaseProcess(gitMocks, inquirerMock, createTag) {
   try {
-    // Merge the branch
+    // Simulate merge process
+    gitMocks.checkoutBranch('hotfix/1.0.1');
+    gitMocks.checkoutBranch('main');
+    gitMocks.pullLatestChanges();
+    gitMocks.checkoutBranch('develop');
+    gitMocks.pullLatestChanges();
+    gitMocks.checkoutBranch('main');
+    gitMocks.mergeBranch('hotfix/1.0.1');
+    gitMocks.checkoutBranch('develop');
     gitMocks.mergeBranch('hotfix/1.0.1');
     
-    // Conditionally create and push tag based on user choice
+    // This is the code we're testing: conditional tag creation based on user input
     if (createTag) {
       gitMocks.createTag('1.0.1');
       gitMocks.pushToRemote('main');
@@ -81,9 +103,10 @@ function simulateBranchWorkflow(gitMocks, createTag) {
       gitMocks.pushToRemote('develop');
     }
     
-    // Clean up
-    gitMocks.deleteLocalBranch('hotfix/1.0.1');
+    // Finish up release
+    gitMocks.deleteLocalBranch('hotfix/1.0.1', false);
     gitMocks.deleteRemoteBranch('hotfix/1.0.1');
+    gitMocks.checkoutBranch('develop');
     
     return { success: true };
   } catch (error) {

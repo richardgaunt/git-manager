@@ -495,7 +495,7 @@ async function doRelease(type) {
       console.log(chalk.yellow('Operation canceled.'));
       return;
     }
-    
+
     // Ask if user wants to create a tag
     const { createTagConfirm } = await inquirer.prompt([
       {
@@ -532,8 +532,7 @@ async function doRelease(type) {
     console.log(chalk.blue('\nChecking out develop branch'));
     checkoutBranch('develop');
 
-    console.log(chalk.blue('\nMerging ${type} branch into develop'));
-    mergeBranch(releaseBranch);
+    console.log(chalk.blue(`\nMerging ${type} branch into develop`));
     try {
       mergeBranch(releaseBranch);
     } catch (error) {
