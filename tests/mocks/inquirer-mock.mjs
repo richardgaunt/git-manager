@@ -1,58 +1,64 @@
-// Mock implementation for inquirer
+// Mock implementation for @inquirer/prompts
 
-/**
- * Create a mock for inquirer that returns predefined answers
- * @param {Object} mockAnswers - Map of prompts to answers
- * @returns {Object} - Mock inquirer object
- */
-export function createInquirerMock(mockAnswers = {}) {
-  return {
-    prompt: jest.fn((questions) => {
-      // Convert single question to array for consistent handling
-      const questionsArray = Array.isArray(questions) ? questions : [questions];
+import { jest } from '@jest/globals';
 
-      // Build response object based on question names
-      const responses = {};
+// Mock answers store
+let mockAnswers = {};
 
-      for (const question of questionsArray) {
-        const questionName = question.name;
-
-        if (mockAnswers[questionName] !== undefined) {
-          // Use the provided mock answer
-          responses[questionName] = mockAnswers[questionName];
-        } else if (question.default !== undefined) {
-          // Fall back to default value if provided
-          responses[questionName] = question.default;
-        } else {
-          // Provide some sensible defaults based on question type
-          switch (question.type) {
-            case 'confirm':
-              responses[questionName] = true;
-              break;
-            case 'list':
-            case 'autocomplete':
-              responses[questionName] = question.choices
-                ? (Array.isArray(question.choices) ? question.choices[0] : Object.values(question.choices)[0])
-                : '';
-              break;
-            case 'checkbox':
-              responses[questionName] = [];
-              break;
-            default:
-              responses[questionName] = 'mock-answer';
-          }
-        }
-      }
-
-      return Promise.resolve(responses);
-    }),
-
-    // Add mock for registerPrompt
-    registerPrompt: jest.fn()
-  };
+// Helper to set mock answers for all tests
+export function setMockAnswers(answers) {
+  mockAnswers = { ...answers };
 }
 
-/**
- * Mock for the inquirer-autocomplete-prompt module
- */
-export const mockAutocompletePrompt = jest.fn();
+// Mock implementations for each prompt type
+export const select = jest.fn(async (options) => {
+  const key = options.message;
+  if (mockAnswers[key]) {
+    return mockAnswers[key];
+  }
+  if (options.choices && options.choices.length > 0) {
+    return options.choices[0].value;
+  }
+  return '';
+});
+
+export const checkbox = jest.fn(async (options) => {
+  const key = options.message;
+  if (mockAnswers[key]) {
+    return mockAnswers[key];
+  }
+  return [];
+});
+
+export const confirm = jest.fn(async (options) => {
+  const key = options.message;
+  if (mockAnswers[key] !== undefined) {
+    return mockAnswers[key];
+  }
+  return options.default !== undefined ? options.default : true;
+});
+
+export const input = jest.fn(async (options) => {
+  const key = options.message;
+  if (mockAnswers[key]) {
+    return mockAnswers[key];
+  }
+  return options.default || 'mock-answer';
+});
+
+export const search = jest.fn(async (options) => {
+  const key = options.message;
+  if (mockAnswers[key]) {
+    return mockAnswers[key];
+  }
+  
+  // If source function is provided, try to get first item
+  if (typeof options.source === 'function') {
+    const items = options.source('');
+    if (items && items.length > 0) {
+      return items[0];
+    }
+  }
+  
+  return 'mock-search-result';
+});

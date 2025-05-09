@@ -3,7 +3,7 @@
 import * as branches from './branches-actions.mjs';
 import chalk from 'chalk';
 import { getCurrentBranch, getCurrentDirectory } from '../api.mjs';
-import inquirer from 'inquirer';
+import { select, confirm } from '@inquirer/prompts';
 
 // Export all commands
 export const commands = {
@@ -104,15 +104,14 @@ export async function showInteractiveMenu() {
   let exitRequested = false;
 
   while (!exitRequested) {
-    const { action } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do?',
-        choices: menuOptions,
-        pageSize: 10
-      }
-    ]);
+    const action = await select({
+      message: 'What would you like to do?',
+      choices: menuOptions.map(option => ({
+        name: option.name,
+        value: option.value
+      })),
+      pageSize: 10
+    });
 
     switch (action) {
       case 'list-branches':
@@ -152,14 +151,10 @@ export async function showInteractiveMenu() {
 
     if (!exitRequested) {
       console.log(''); // Empty line for better readability
-      const { continue: shouldContinue } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'continue',
-          message: 'Return to main menu?',
-          default: true
-        }
-      ]);
+      const shouldContinue = await confirm({
+        message: 'Return to main menu?',
+        default: true
+      });
 
       if (!shouldContinue) {
         exitRequested = true;

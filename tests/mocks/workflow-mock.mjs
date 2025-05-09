@@ -117,44 +117,68 @@ export function createGitWorkflowMock(state = {}) {
 }
 
 /**
- * Creates a mock for inquirer to simulate user input in workflows
+ * Sets up mock functions for @inquirer/prompts with predefined responses
  *
- * @param {Object} responses - Responses for each prompt
- * @returns {Object} - Mock inquirer module
+ * @param {Object} responses - Map of prompt messages to their responses
  */
-export function createInquirerWorkflowMock(responses = {}) {
-  return {
-    prompt: jest.fn(questions => {
-      const questionArray = Array.isArray(questions) ? questions : [questions];
-      const result = {};
-
-      questionArray.forEach(question => {
-        const name = question.name;
-
-        if (responses[name] !== undefined) {
-          // Use provided response
-          result[name] = responses[name];
-        } else if (question.default !== undefined) {
-          // Use default value
-          result[name] = question.default;
-        } else if (question.type === 'list' && question.choices && question.choices.length) {
-          // For list type, use first option if no response provided
-          result[name] = question.choices[0];
-        } else if (question.type === 'checkbox') {
-          // For checkbox, empty array if no response
-          result[name] = [];
-        } else if (question.type === 'confirm') {
-          // Default confirmation to true
-          result[name] = true;
-        } else {
-          // For other types, use a default value
-          result[name] = 'mock-value';
+export function setupInquirerPromptMocks(responses = {}) {
+  // Import the module to mock
+  jest.mock('@inquirer/prompts', () => {
+    return {
+      select: jest.fn(options => {
+        const key = options.message;
+        if (responses[key] !== undefined) {
+          return Promise.resolve(responses[key]);
         }
-      });
-
-      return Promise.resolve(result);
-    }),
-
-    registerPrompt: jest.fn()
-  };
+        
+        // Default to first choice if available
+        if (options.choices && options.choices.length > 0) {
+          return Promise.resolve(options.choices[0].value);
+        }
+        
+        return Promise.resolve('mock-select-value');
+      }),
+      
+      checkbox: jest.fn(options => {
+        const key = options.message;
+        if (responses[key] !== undefined) {
+          return Promise.resolve(responses[key]);
+        }
+        return Promise.resolve([]);
+      }),
+      
+      confirm: jest.fn(options => {
+        const key = options.message;
+        if (responses[key] !== undefined) {
+          return Promise.resolve(responses[key]);
+        }
+        return Promise.resolve(options.default !== undefined ? options.default : true);
+      }),
+      
+      input: jest.fn(options => {
+        const key = options.message;
+        if (responses[key] !== undefined) {
+          return Promise.resolve(responses[key]);
+        }
+        return Promise.resolve(options.default || 'mock-input-value');
+      }),
+      
+      search: jest.fn(options => {
+        const key = options.message;
+        if (responses[key] !== undefined) {
+          return Promise.resolve(responses[key]);
+        }
+        
+        // Try to get first item from source function
+        if (typeof options.source === 'function') {
+          const items = options.source('');
+          if (items && items.length > 0) {
+            return Promise.resolve(items[0]);
+          }
+        }
+        
+        return Promise.resolve('mock-search-result');
+      })
+    };
+  });
 }

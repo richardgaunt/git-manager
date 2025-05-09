@@ -9,6 +9,15 @@ jest.unstable_mockModule('commander', () => ({
   }))
 }));
 
+// Mock @inquirer/prompts
+jest.unstable_mockModule('@inquirer/prompts', () => ({
+  select: jest.fn().mockResolvedValue('mock-option'),
+  confirm: jest.fn().mockResolvedValue(true),
+  input: jest.fn().mockResolvedValue('mock-input'),
+  checkbox: jest.fn().mockResolvedValue([]),
+  search: jest.fn().mockResolvedValue('mock-search-result')
+}));
+
 // Import modules after mocking
 const commander = await import('commander');
 
