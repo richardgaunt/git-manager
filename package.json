@@ -19,10 +19,9 @@
     "lint:report": "eslint . --ext .mjs -f json -o eslint-report.json"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.5.0",
     "chalk": "^5.2.0",
-    "commander": "^11.0.0",
-    "inquirer": "^9.2.7",
-    "inquirer-autocomplete-prompt": "^3.0.1"
+    "commander": "^11.0.0"
   },
   "author": "",
   "license": "MIT",

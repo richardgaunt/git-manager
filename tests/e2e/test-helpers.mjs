@@ -43,6 +43,7 @@ export function runGitManager(command, options = {}) {
       env: {
         ...process.env,
         GIT_MANAGER_TEST: 'true', // Indicate we're in test mode
+        GIT_MANAGER_NON_INTERACTIVE: 'true', // Use non-interactive mode
         // Suppress color output in tests
         FORCE_COLOR: '0',
         NO_COLOR: '1'
