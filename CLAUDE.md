@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 - Build/Run: `npm start`
 - Run specific command: `node index.mjs [command-name]`
-- No automated tests available
+- Run tests: `npm test`
+- Run specific test file: `npm test -- --testPathPattern=tests/path/to/test.mjs`
 
 ## Code Style Guidelines
 - **JS/Node.js**: ES modules with `.mjs` extension
@@ -41,3 +42,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Automatic rebasing from remote during checkout
 - Branch deletion with safety checks
 - Smart branch naming with kebab-case conversion
+
+## Development Guidelines
+- Read the assigned issue
+- Make all new features in a feature branch
+- Create tests to support feature
+- Create a PR for any new features using the `PULL_REQUEST_TEMPLATE.md`:
+
+```
+## Checklist before requesting a review
+
+- [ ] I have formatted the subject to include ticket number as `[#123] Verb in past tense with dot at the end.`
+- [ ] I have added a link to the issue tracker
+- [ ] I have provided information in `Changed` section about WHY something was done if this was not a normal implementation
+- [ ] I have performed a self-review of my code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] I have run new and existing relevant tests locally with my changes, and they passed
+- [ ] I have provided screenshots, where applicable
+
+## Changed
+
+1.
+
+## Screenshots
+
+```
