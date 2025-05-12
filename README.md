@@ -4,6 +4,7 @@ Git management tool with a few workflows mapped out.
 
 [![Tests](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/tests.yml)
 [![Linting](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml/badge.svg)](https://github.com/richardgaunt/git-manager/actions/workflows/lint.yml)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/richardgaunt/git-manager?utm_source=oss&utm_medium=github&utm_campaign=richardgaunt%2Fgit-manager&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 ## Features
 
