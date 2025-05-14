@@ -42,7 +42,7 @@ export async function listBranches() {
       console.log(`    ${branch}`);
     }
   });
-  
+
   // For test mode, ensure we return a success
   if (isTestMode()) {
     return { success: true };
@@ -256,6 +256,7 @@ export async function createReleaseBranch() {
     } else {
       console.log(chalk.yellow('No release branches found.'));
     }
+    const status = getStatus();
     const hasChanges = status.trim().length > 0;
 
     if (hasChanges) {
@@ -568,33 +569,33 @@ async function doRelease(type) {
  */
 export async function cherryPickChanges() {
   console.log(chalk.blue('\n=== Cherry Pick Changes ===\n'));
-  
+
   try {
     // Get the current branch for reference
     const currentBranch = getCurrentBranch();
     console.log(`Current branch: ${chalk.green(currentBranch)}`);
-    
+
     // Check for uncommitted changes that should be stashed
     const status = getStatus();
     let changesStashed = false;
-    
+
     if (status.trim()) {
       console.log('\nUncommitted changes detected:');
       console.log(status);
-      
+
       console.log(chalk.yellow('\nStashing current changes...'));
       changesStashed = stashChanges('Auto stash before cherry-picking');
     }
-    
+
     // Get all branches to choose from
     const branches = getAllBranches()
       .filter(branch => branch !== currentBranch); // Remove current branch from list
-    
+
     if (branches.length === 0) {
       console.log(chalk.yellow('No other branches available to cherry-pick from.'));
       return;
     }
-    
+
     // Select branch to cherry-pick from
     const { selectedBranch } = await inquirer.prompt([
       {
@@ -605,52 +606,52 @@ export async function cherryPickChanges() {
           if (!input) {
             return Promise.resolve(branches);
           }
-          
+
           const filtered = branches.filter(branch =>
             branch.toLowerCase().includes(input.toLowerCase())
           );
-          
+
           return Promise.resolve(filtered);
         },
         pageSize: 15
       }
     ]);
-    
+
     console.log(chalk.yellow(`\nFetching latest commits from branch: ${selectedBranch}`));
-    
+
     // Let's checkout the branch temporarily to get commits if needed
     const tempCheckout = selectedBranch !== currentBranch;
-    
+
     if (tempCheckout) {
       checkoutBranch(selectedBranch);
     }
-    
+
     // Get the latest commits from the selected branch
     const commits = getLatestCommits(20);
-    
+
     // Go back to the original branch if we temporarily switched
     if (tempCheckout) {
       checkoutBranch(currentBranch);
     }
-    
+
     if (commits.length === 0) {
       console.log(chalk.yellow('No commits found on the selected branch.'));
-      
+
       // Apply stashed changes if needed
       if (changesStashed) {
         console.log(chalk.yellow('\nApplying stashed changes...'));
         applyStash();
       }
-      
+
       return;
     }
-    
+
     // Format commits for display
     const commitChoices = commits.map((commit) => ({
       name: `${commit.hash} - ${commit.date} - ${commit.message} (${commit.author})`,
       value: commit.hash
     }));
-    
+
     // Select commit to cherry-pick
     const { selectedCommit } = await inquirer.prompt([
       {
@@ -661,7 +662,7 @@ export async function cherryPickChanges() {
         pageSize: 15
       }
     ]);
-    
+
     // Confirm the cherry-pick
     const { confirm } = await inquirer.prompt([
       {
@@ -671,23 +672,23 @@ export async function cherryPickChanges() {
         default: false
       }
     ]);
-    
+
     if (!confirm) {
       console.log(chalk.yellow('Cherry-pick operation canceled.'));
-      
+
       // Apply stashed changes if needed
       if (changesStashed) {
         console.log(chalk.yellow('\nApplying stashed changes...'));
         applyStash();
       }
-      
+
       return;
     }
-    
+
     // Execute cherry-pick
     console.log(chalk.yellow(`\nCherry-picking commit ${selectedCommit}...`));
     const result = cherryPickCommit(selectedCommit);
-    
+
     if (result.success) {
       console.log(chalk.green(result.message));
     } else {
@@ -695,11 +696,11 @@ export async function cherryPickChanges() {
       console.log(chalk.yellow('\nYou may need to resolve conflicts and then run:'));
       console.log(chalk.dim('git cherry-pick --continue'));
     }
-    
+
     // Apply stashed changes if needed
     if (changesStashed) {
       console.log(chalk.yellow('\nApplying stashed changes...'));
-      
+
       try {
         applyStash();
         console.log(chalk.green('Successfully applied stashed changes.'));
@@ -708,7 +709,7 @@ export async function cherryPickChanges() {
         console.log(chalk.yellow('Use: git stash apply'));
       }
     }
-    
+
     console.log(chalk.green('\n✓ Cherry-pick operation completed.'));
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
@@ -721,41 +722,41 @@ export async function cherryPickChanges() {
  */
 export async function mergeFeatureBranchCommand() {
   console.log(chalk.blue('\n=== Merge Feature Branch ===\n'));
-  
+
   try {
     // Get the current branch for reference
     const currentBranch = getCurrentBranch();
     console.log(`Current branch: ${chalk.green(currentBranch)}`);
-    
+
     // Check for uncommitted changes that should be stashed
     const status = getStatus();
     let changesStashed = false;
-    
+
     if (status.trim()) {
       console.log('\nUncommitted changes detected:');
       console.log(status);
-      
+
       console.log(chalk.yellow('\nStashing current changes...'));
       changesStashed = stashChanges('Auto stash before merge');
     }
-    
+
     // Get all branches to choose from (except current branch)
     const branches = getAllBranches()
-      .filter(branch => branch !== currentBranch) 
+      .filter(branch => branch !== currentBranch)
       .filter(branch => branch.startsWith('feature/')); // Only show feature branches
-    
+
     if (branches.length === 0) {
       console.log(chalk.yellow('No feature branches available to merge.'));
-      
+
       // Apply stashed changes if needed
       if (changesStashed) {
         console.log(chalk.yellow('\nApplying stashed changes...'));
         applyStash();
       }
-      
+
       return;
     }
-    
+
     // Select branch to merge
     const { selectedBranch } = await inquirer.prompt([
       {
@@ -766,17 +767,17 @@ export async function mergeFeatureBranchCommand() {
           if (!input) {
             return Promise.resolve(branches);
           }
-          
+
           const filtered = branches.filter(branch =>
             branch.toLowerCase().includes(input.toLowerCase())
           );
-          
+
           return Promise.resolve(filtered);
         },
         pageSize: 15
       }
     ]);
-    
+
     // Get the commit message
     const { commitMessage } = await inquirer.prompt([
       {
@@ -787,26 +788,26 @@ export async function mergeFeatureBranchCommand() {
         validate: input => !!input.trim() || 'Commit message is required'
       }
     ]);
-    
+
     // Execute merge
     console.log(chalk.yellow(`\nMerging branch ${selectedBranch}...`));
     const result = mergeFeatureBranch(selectedBranch, commitMessage);
-    
+
     if (result.success) {
       console.log(chalk.green(result.message));
     } else {
       console.log(chalk.red(result.message));
-      
+
       if (result.isConflict) {
         console.log(chalk.yellow('\nMerge conflicts detected. Please resolve them manually and then commit.'));
         console.log(chalk.dim('After resolving conflicts, run: git commit -m "Your commit message"'));
       }
     }
-    
+
     // Apply stashed changes if needed (only if no conflicts)
     if (changesStashed && result.success) {
       console.log(chalk.yellow('\nApplying stashed changes...'));
-      
+
       try {
         applyStash();
         console.log(chalk.green('Successfully applied stashed changes.'));
@@ -815,7 +816,7 @@ export async function mergeFeatureBranchCommand() {
         console.log(chalk.yellow('Use: git stash apply'));
       }
     }
-    
+
     console.log(chalk.green('\n✓ Merge operation completed.'));
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
