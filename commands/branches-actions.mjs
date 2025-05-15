@@ -25,7 +25,8 @@ import {
   deleteRemoteBranch,
   getLatestCommits,
   cherryPickCommit,
-  mergeFeatureBranch
+  mergeFeatureBranch,
+  fetchBranchUpdates
 } from '../api.mjs';
 
 export async function listBranches() {
@@ -196,12 +197,14 @@ export async function createFeatureBranch() {
   console.log(chalk.blue('\n=== Creating Feature Branch ===\n'));
 
   try {
-    // Stash changes if needed
+    // Get the status and check if there are changes to stash
+    const status = getStatus();
     const hasChanges = status.trim().length > 0;
+    let changesStashed = false;
 
     if (hasChanges) {
       console.log(chalk.yellow('\nStashing current changes...'));
-      stashChanges();
+      changesStashed = stashChanges();
     }
 
     await checkoutDevelop();
@@ -302,7 +305,8 @@ function isNonInteractive() {
 }
 
 /**
- * Stashes staged changes, checks out develop, gets latest changes.
+ * Stashes staged changes, updates develop with latest changes.
+ * If current branch is not develop, uses fetch model instead of checkout+pull
  * @returns {Promise<void>}
  */
 async function checkoutDevelop() {
@@ -320,13 +324,26 @@ async function checkoutDevelop() {
       console.log('\nNo uncommitted changes detected.');
     }
 
-    // Checkout develop branch.
-    console.log(chalk.yellow('\nChecking out develop branch...'));
-    checkoutBranch('develop');
+    // Check if we're already on develop
+    if (currentBranch === 'develop') {
+      // We're already on develop, use pullWithRebase
+      console.log(chalk.yellow('\nAlready on develop branch, updating with git pull --rebase...'));
+      pullWithRebase();
+    } else {
+      // We're not on develop, use fetch model to update develop without checking it out
+      console.log(chalk.yellow('\nUpdating develop branch with fetch model...'));
+      const fetchResult = fetchBranchUpdates('develop');
 
-    // Pull with rebase
-    console.log(chalk.yellow('\nUpdating develop branch with git pull --rebase...'));
-    pullWithRebase();
+      if (fetchResult) {
+        console.log(chalk.green('Successfully updated develop branch'));
+      } else {
+        console.log(chalk.yellow('The local develop branch has diverged from remote. You may need to merge or rebase manually.'));
+      }
+
+      // Now checkout develop branch
+      console.log(chalk.yellow('\nChecking out develop branch...'));
+      checkoutBranch('develop');
+    }
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -334,7 +351,8 @@ async function checkoutDevelop() {
 }
 
 /**
- * Stashes staged changes, checks out main or master, gets latest changes.
+ * Stashes staged changes, updates main or master with latest changes.
+ * If current branch is not main/master, uses fetch model instead of checkout+pull
  * @returns {Promise<void>}
  */
 async function checkoutMain() {
@@ -362,13 +380,26 @@ async function checkoutMain() {
 
     const mainBranch = getMainBranch();
 
-    // Checkout develop branch.
-    console.log(chalk.yellow(`\nChecking out ${mainBranch} branch...`));
-    checkoutBranch(mainBranch);
+    // Check if we're already on main/master
+    if (currentBranch === mainBranch) {
+      // We're already on main branch, use pullWithRebase
+      console.log(chalk.yellow(`\nAlready on ${mainBranch} branch, updating with git pull --rebase...`));
+      pullWithRebase();
+    } else {
+      // We're not on main branch, use fetch model to update main without checking it out
+      console.log(chalk.yellow(`\nUpdating ${mainBranch} branch with fetch model...`));
+      const fetchResult = fetchBranchUpdates(mainBranch);
 
-    // Pull with rebase
-    console.log(chalk.yellow(`\nUpdating ${mainBranch} branch with git pull --rebase...`));
-    pullWithRebase();
+      if (fetchResult) {
+        console.log(chalk.green(`Successfully updated ${mainBranch} branch`));
+      } else {
+        console.log(chalk.yellow(`The local ${mainBranch} branch has diverged from remote. You may need to merge or rebase manually.`));
+      }
+
+      // Now checkout main branch
+      console.log(chalk.yellow(`\nChecking out ${mainBranch} branch...`));
+      checkoutBranch(mainBranch);
+    }
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
     throw error;
@@ -418,13 +449,11 @@ export async function createHotfix() {
 async function listAndSelectTag() {
   const tags = (listTags()).slice(0, 3);
   console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
-  const releaseTag = await input({
+  return await input({
     message: 'Enter the release tag (e.g., 1.0.0):',
     default: tags[0],
     validate: input => !!input.trim() || 'Release tag is required'
   });
-
-  return releaseTag;
 }
 
 /**
@@ -446,7 +475,7 @@ export async function finishRelease() {
 }
 
 /**
- * Manage release or hotfix release process.
+ * Manage release or hotfix release process using the fetch model where possible
  *
  * @param type
  * @returns {Promise<void>}
@@ -460,7 +489,7 @@ async function doRelease(type) {
     const branchPrefix = type === 'hotfix' ? 'hotfix/' : 'release/';
     const releaseBranches = getAllBranches().filter(branch => branch.startsWith(branchPrefix));
     if (releaseBranches.length === 0) {
-      console.log(chalk.yellow('No hotfix branches exist.'));
+      console.log(chalk.yellow(`No ${type} branches exist.`));
       return;
     }
     const releaseBranch = await select({
@@ -471,7 +500,6 @@ async function doRelease(type) {
       }))
     });
 
-    console.log(chalk.yellow(`\nChecking out ${type} branch: ${releaseBranch}`));
     // Extract the release management version for tagging
     const tagName = releaseBranch.replace(branchPrefix, '');
 
@@ -499,17 +527,28 @@ async function doRelease(type) {
       default: true
     });
 
+    // Stash changes if needed
     stashChanges();
+
+    // Update main branch using fetch model
+    console.log(chalk.blue(`\nUpdating ${mainBranch} branch with fetch model...`));
+    const mainFetchResult = fetchBranchUpdates(mainBranch);
+    if (!mainFetchResult) {
+      console.log(chalk.yellow(`The local ${mainBranch} branch has diverged from remote. You may need to merge manually.`));
+    }
+
+    // Update develop branch using fetch model
+    console.log(chalk.blue('\nUpdating develop branch with fetch model(test)...'));
+    const developFetchResult = fetchBranchUpdates('develop');
+    if (!developFetchResult) {
+      console.log(chalk.yellow('The local develop branch has diverged from remote. You may need to merge manually.'));
+    }
+
+    // Start with the release/hotfix branch
     console.log(chalk.blue(`\nChecking out ${type} branch: ${releaseBranch}`));
     checkoutBranch(releaseBranch);
-    console.log(chalk.blue(`\n Checking out ${mainBranch} branch`));
-    checkoutBranch(mainBranch);
-    console.log(chalk.blue(`\n Updating ${mainBranch} branch to latest`));
-    pullLatestChanges();
-    console.log(chalk.blue('\nChecking out develop branch'));
-    checkoutBranch('develop');
-    console.log(chalk.blue('\nUpdating develop branch to latest'));
-    pullLatestChanges();
+
+    // Merge process - first to main
     console.log(chalk.blue(`\nChecking out ${mainBranch} branch`));
     checkoutBranch(mainBranch);
     console.log(chalk.blue(`\nMerging ${type} branch into ${mainBranch}`));
@@ -521,10 +560,9 @@ async function doRelease(type) {
       return;
     }
 
-
+    // Then to develop
     console.log(chalk.blue('\nChecking out develop branch'));
     checkoutBranch('develop');
-
     console.log(chalk.blue(`\nMerging ${type} branch into develop`));
     try {
       mergeBranch(releaseBranch);
@@ -533,6 +571,8 @@ async function doRelease(type) {
       console.log(chalk.yellow(error.message));
       return;
     }
+
+    // Handle tag creation and pushing
     if (createTagConfirm) {
       const tag = await listAndSelectTag();
       await createTag(tag);
@@ -544,6 +584,7 @@ async function doRelease(type) {
       pushToRemote('develop');
     }
 
+    // Cleanup
     console.log(chalk.blue(`\nDeleting ${type} branch locally`));
     const result = deleteLocalBranch(releaseBranch, false);
     if (!result.success) {
@@ -554,9 +595,8 @@ async function doRelease(type) {
     console.log(chalk.blue(`\nDeleting ${type} branch from remote`));
     await deleteRemoteBranch(releaseBranch);
 
-    console.log(chalk.blue('\n16. Checking out develop branch'));
+    console.log(chalk.blue('\nChecking out develop branch'));
     checkoutBranch('develop');
-
 
     console.log(chalk.green(`\n✅ ${type} successfully completed!`));
   } catch (error) {
@@ -597,25 +637,17 @@ export async function cherryPickChanges() {
     }
 
     // Select branch to cherry-pick from
-    const { selectedBranch } = await inquirer.prompt([
-      {
-        type: 'autocomplete',
-        name: 'selectedBranch',
-        message: 'Select a branch to cherry-pick from:',
-        source: (answersSoFar, input = '') => {
-          if (!input) {
-            return Promise.resolve(branches);
-          }
-
-          const filtered = branches.filter(branch =>
+    const selectedBranch = await search({
+      message: 'Select a branch to cherry-pick from:',
+      source: (input) => {
+        input = input || '';
+        // Filter branches based on input
+        return branches.filter(branch =>
             branch.toLowerCase().includes(input.toLowerCase())
-          );
-
-          return Promise.resolve(filtered);
-        },
-        pageSize: 15
-      }
-    ]);
+        );
+      },
+      pageSize: 15
+    });
 
     console.log(chalk.yellow(`\nFetching latest commits from branch: ${selectedBranch}`));
 

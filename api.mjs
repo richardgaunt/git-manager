@@ -208,6 +208,31 @@ export function pullWithRebase(remote = 'origin', branch = null) {
 }
 
 /**
+ * Fetch updates from remote without switching to the branch
+ * More efficient than checkout+pull when not on the target branch
+ *
+ * @param {string} branch Branch to update
+ * @param {string} remote Remote name
+ * @returns {boolean} True if fetch was successful
+ */
+export function fetchBranchUpdates(branch, remote = 'origin') {
+  try {
+    // Fetch the remote branch and update the local branch
+    execSync(`git fetch ${remote} ${branch}`, { encoding: 'utf8' });
+    return true;
+  } catch (error) {
+    // Handle non-fast-forward updates (e.g., if local branch has diverged)
+    if (error.message.includes('non-fast-forward')) {
+      console.log(chalk.yellow(`Cannot fast-forward ${branch}. Local branch has diverged from remote.`));
+      // Fetch without updating local branch, user will need to merge manually
+      execSync(`git fetch ${remote} ${branch}`, { encoding: 'utf8' });
+      return false;
+    }
+    throw new Error(`Failed to fetch updates for ${branch}: ${error.message}`);
+  }
+}
+
+/**
  * Create a new branch
  * @param {string} branchName Name for the new branch
  * @param {string} startPoint Branch to create from (default: current HEAD)
@@ -405,8 +430,8 @@ export function cherryPickCommit(commitHash) {
   try {
     // Use -x flag to add a reference to the original commit
     execSync(`git cherry-pick -x ${commitHash}`, { encoding: 'utf8' });
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `Successfully cherry-picked commit ${commitHash}`
     };
   } catch (error) {
@@ -428,7 +453,7 @@ export function mergeFeatureBranch(featureBranch, commitMessage) {
     // Merge the feature branch with the provided commit message
     // Using --no-ff to ensure a merge commit is created
     execSync(`git merge --no-ff ${featureBranch} -m "${commitMessage}"`, { encoding: 'utf8' });
-    
+
     return {
       success: true,
       message: `Successfully merged branch ${featureBranch}`
@@ -442,7 +467,7 @@ export function mergeFeatureBranch(featureBranch, commitMessage) {
         isConflict: true
       };
     }
-    
+
     return {
       success: false,
       message: `Failed to merge branch ${featureBranch}: ${error.message}`
