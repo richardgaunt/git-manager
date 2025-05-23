@@ -218,14 +218,14 @@ export function pullWithRebase(remote = 'origin', branch = null) {
 export function fetchBranchUpdates(branch, remote = 'origin') {
   try {
     // Fetch the remote branch and update the local branch
-    execSync(`git fetch ${remote} ${branch}`, { encoding: 'utf8' });
+    execSync(`git fetch ${remote} ${branch}:${branch}`, { encoding: 'utf8' });
     return true;
   } catch (error) {
     // Handle non-fast-forward updates (e.g., if local branch has diverged)
     if (error.message.includes('non-fast-forward')) {
       console.log(chalk.yellow(`Cannot fast-forward ${branch}. Local branch has diverged from remote.`));
-      // Fetch without updating local branch, user will need to merge manually
-      execSync(`git fetch ${remote} ${branch}`, { encoding: 'utf8' });
+      // Fetch the remote branch without updating local branch
+      execSync(`git fetch ${remote}`, { encoding: 'utf8' });
       return false;
     }
     throw new Error(`Failed to fetch updates for ${branch}: ${error.message}`);
