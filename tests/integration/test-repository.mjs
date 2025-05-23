@@ -15,17 +15,35 @@ import { execSync } from 'child_process';
  * @param {boolean} options.withDevelop Whether to include a develop branch
  * @param {boolean} options.withFeature Whether to include a feature branch
  * @param {boolean} options.withRemote Whether to set up a remote repository simulation
+ * @param {boolean} options.useEnvVars Whether to use environment variables for Git configuration
  * @returns {Object} Repository information including paths and cleanup function
  */
 export function createTestRepository(options = {}) {
   const {
     withDevelop = true,
     withFeature = false,
-    withRemote = false
+    withRemote = false,
+    useEnvVars = true
   } = options;
 
   // Create a temporary directory
   const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-manager-test-'));
+
+  // Save original Git environment variables
+  const originalGitDir = process.env.GIT_DIR;
+  const originalGitWorkTree = process.env.GIT_WORK_TREE;
+  const originalGitAuthorName = process.env.GIT_AUTHOR_NAME;
+  const originalGitAuthorEmail = process.env.GIT_AUTHOR_EMAIL;
+  const originalGitCommitterName = process.env.GIT_COMMITTER_NAME;
+  const originalGitCommitterEmail = process.env.GIT_COMMITTER_EMAIL;
+
+  // Set environment variables for test isolation if requested
+  if (useEnvVars) {
+    process.env.GIT_AUTHOR_NAME = 'Test User';
+    process.env.GIT_AUTHOR_EMAIL = 'test@example.com';
+    process.env.GIT_COMMITTER_NAME = 'Test User';
+    process.env.GIT_COMMITTER_EMAIL = 'test@example.com';
+  }
 
   // Initialize git repository
   execSync('git init', { cwd: testDir });
@@ -97,6 +115,26 @@ export function createTestRepository(options = {}) {
         }
       } catch (error) {
         console.error('Error cleaning up test repositories:', error);
+      // Restore original Git environment variables
+      if (useEnvVars) {
+        if (originalGitDir !== undefined) process.env.GIT_DIR = originalGitDir;
+        else delete process.env.GIT_DIR;
+
+        if (originalGitWorkTree !== undefined) process.env.GIT_WORK_TREE = originalGitWorkTree;
+        else delete process.env.GIT_WORK_TREE;
+
+        if (originalGitAuthorName !== undefined) process.env.GIT_AUTHOR_NAME = originalGitAuthorName;
+        else delete process.env.GIT_AUTHOR_NAME;
+
+        if (originalGitAuthorEmail !== undefined) process.env.GIT_AUTHOR_EMAIL = originalGitAuthorEmail;
+        else delete process.env.GIT_AUTHOR_EMAIL;
+
+        if (originalGitCommitterName !== undefined) process.env.GIT_COMMITTER_NAME = originalGitCommitterName;
+        else delete process.env.GIT_COMMITTER_NAME;
+
+        if (originalGitCommitterEmail !== undefined) process.env.GIT_COMMITTER_EMAIL = originalGitCommitterEmail;
+        else delete process.env.GIT_COMMITTER_EMAIL;
+      }
       }
     }
   };
