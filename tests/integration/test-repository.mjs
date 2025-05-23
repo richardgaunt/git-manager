@@ -115,6 +115,26 @@ export function createTestRepository(options = {}) {
         }
       } catch (error) {
         console.error('Error cleaning up test repositories:', error);
+      // Restore original Git environment variables
+      if (useEnvVars) {
+        if (originalGitDir !== undefined) process.env.GIT_DIR = originalGitDir;
+        else delete process.env.GIT_DIR;
+        
+        if (originalGitWorkTree !== undefined) process.env.GIT_WORK_TREE = originalGitWorkTree;
+        else delete process.env.GIT_WORK_TREE;
+        
+        if (originalGitAuthorName !== undefined) process.env.GIT_AUTHOR_NAME = originalGitAuthorName;
+        else delete process.env.GIT_AUTHOR_NAME;
+        
+        if (originalGitAuthorEmail !== undefined) process.env.GIT_AUTHOR_EMAIL = originalGitAuthorEmail;
+        else delete process.env.GIT_AUTHOR_EMAIL;
+        
+        if (originalGitCommitterName !== undefined) process.env.GIT_COMMITTER_NAME = originalGitCommitterName;
+        else delete process.env.GIT_COMMITTER_NAME;
+        
+        if (originalGitCommitterEmail !== undefined) process.env.GIT_COMMITTER_EMAIL = originalGitCommitterEmail;
+        else delete process.env.GIT_COMMITTER_EMAIL;
+      }
       }
     }
   };
