@@ -685,27 +685,19 @@ export async function cherryPickChanges() {
     }));
 
     // Select commit to cherry-pick
-    const { selectedCommit } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'selectedCommit',
-        message: 'Select a commit to cherry-pick:',
-        choices: commitChoices,
-        pageSize: 15
-      }
-    ]);
+    const selectedCommit = await select({
+      message: 'Select a commit to cherry-pick:',
+      choices: commitChoices,
+      pageSize: 15
+    });
 
     // Confirm the cherry-pick
-    const { confirm } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirm',
-        message: `Are you sure you want to cherry-pick commit ${selectedCommit}?`,
-        default: false
-      }
-    ]);
+    const confirmCherryPick = await confirm({
+      message: `Are you sure you want to cherry-pick commit ${selectedCommit}?`,
+      default: false
+    });
 
-    if (!confirm) {
+    if (!confirmCherryPick) {
       console.log(chalk.yellow('Cherry-pick operation canceled.'));
 
       // Apply stashed changes if needed
@@ -790,36 +782,23 @@ export async function mergeFeatureBranchCommand() {
     }
 
     // Select branch to merge
-    const { selectedBranch } = await inquirer.prompt([
-      {
-        type: 'autocomplete',
-        name: 'selectedBranch',
-        message: 'Select a feature branch to merge:',
-        source: (answersSoFar, input = '') => {
-          if (!input) {
-            return Promise.resolve(branches);
-          }
-
-          const filtered = branches.filter(branch =>
-            branch.toLowerCase().includes(input.toLowerCase())
-          );
-
-          return Promise.resolve(filtered);
-        },
-        pageSize: 15
-      }
-    ]);
+    const selectedBranch = await search({
+      message: 'Select a feature branch to merge:',
+      source: (input) => {
+        input = input || '';
+        return branches.filter(branch =>
+          branch.toLowerCase().includes(input.toLowerCase())
+        );
+      },
+      pageSize: 15
+    });
 
     // Get the commit message
-    const { commitMessage } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'commitMessage',
-        message: 'Enter a commit message for the merge:',
-        default: `Merge branch '${selectedBranch}' into '${currentBranch}'`,
-        validate: input => !!input.trim() || 'Commit message is required'
-      }
-    ]);
+    const commitMessage = await input({
+      message: 'Enter a commit message for the merge:',
+      default: `Merge branch '${selectedBranch}' into '${currentBranch}'`,
+      validate: input => !!input.trim() || 'Commit message is required'
+    });
 
     // Execute merge
     console.log(chalk.yellow(`\nMerging branch ${selectedBranch}...`));
