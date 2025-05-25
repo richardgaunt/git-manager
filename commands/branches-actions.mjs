@@ -551,9 +551,9 @@ async function doRelease(type) {
     // Merge process - first to main
     console.log(chalk.blue(`\nChecking out ${mainBranch} branch`));
     checkoutBranch(mainBranch);
-    console.log(chalk.blue(`\nMerging ${type} branch into ${mainBranch}`));
+    console.log(chalk.blue(`\nMerging ${type} branch into ${mainBranch} (squashed)`));
     try {
-      mergeBranch(releaseBranch);
+      mergeBranch(releaseBranch, true); // Use squash merge
     } catch (error) {
       console.log(chalk.red(`Merge conflicts detected when merging ${type} into ${mainBranch}. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
@@ -563,9 +563,9 @@ async function doRelease(type) {
     // Then to develop
     console.log(chalk.blue('\nChecking out develop branch'));
     checkoutBranch('develop');
-    console.log(chalk.blue(`\nMerging ${type} branch into develop`));
+    console.log(chalk.blue(`\nMerging ${type} branch into develop (squashed)`));
     try {
-      mergeBranch(releaseBranch);
+      mergeBranch(releaseBranch, true); // Use squash merge
     } catch (error) {
       console.log(chalk.red(`Merge conflicts detected when merging ${type} into develop. Please resolve conflicts manually.`));
       console.log(chalk.yellow(error.message));
@@ -584,9 +584,9 @@ async function doRelease(type) {
       pushToRemote('develop');
     }
 
-    // Cleanup
+    // Cleanup (force delete needed after squash merge)
     console.log(chalk.blue(`\nDeleting ${type} branch locally`));
-    const result = deleteLocalBranch(releaseBranch, false);
+    const result = deleteLocalBranch(releaseBranch, true); // Force delete after squash merge
     if (!result.success) {
       console.log(chalk.red(`Failed to delete local ${type} branch: ${result.message}`));
       return;

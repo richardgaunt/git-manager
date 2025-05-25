@@ -56,9 +56,10 @@ describe('Release Workflow E2E Tests', () => {
     createFile(testEnv.repoPath, 'version.txt', '1.0.0', true);
     execSync('git commit -m "Update version to 1.0.0"', { cwd: testEnv.repoPath });
 
-    // 5. Merge release to main
+    // 5. Merge release to main (squashed)
     execSync('git checkout main', { cwd: testEnv.repoPath });
-    execSync(`git merge --no-ff ${releaseBranch} -m "Merge release 1.0.0"`, { cwd: testEnv.repoPath });
+    execSync(`git merge --squash ${releaseBranch}`, { cwd: testEnv.repoPath });
+    execSync('git commit -m "Merge release/1.0.0 into main (squashed)"', { cwd: testEnv.repoPath });
 
     // 6. Verify release content is on main
     expect(fs.existsSync(path.join(testEnv.repoPath, 'version.txt'))).toBe(true);
@@ -67,15 +68,16 @@ describe('Release Workflow E2E Tests', () => {
     // 7. Create tag for the release
     execSync('git tag -a v1.0.0 -m "Version 1.0.0"', { cwd: testEnv.repoPath });
 
-    // 8. Merge release to develop
+    // 8. Merge release to develop (squashed)
     execSync('git checkout develop', { cwd: testEnv.repoPath });
-    execSync(`git merge --no-ff ${releaseBranch} -m "Merge release 1.0.0 to develop"`, { cwd: testEnv.repoPath });
+    execSync(`git merge --squash ${releaseBranch}`, { cwd: testEnv.repoPath });
+    execSync('git commit -m "Merge release/1.0.0 into develop (squashed)"', { cwd: testEnv.repoPath });
 
     // 9. Verify release content is on develop
     expect(fs.existsSync(path.join(testEnv.repoPath, 'version.txt'))).toBe(true);
 
-    // 10. Delete release branch
-    execSync(`git branch -d ${releaseBranch}`, { cwd: testEnv.repoPath });
+    // 10. Delete release branch (force delete needed after squash merge)
+    execSync(`git branch -D ${releaseBranch}`, { cwd: testEnv.repoPath });
     const branches = getBranches(testEnv.repoPath);
     expect(branches).not.toContain(releaseBranch);
 
@@ -98,24 +100,26 @@ describe('Release Workflow E2E Tests', () => {
     createFile(testEnv.repoPath, 'bugfix.txt', 'Fix for release', true);
     execSync('git commit -m "Fix bug in release"', { cwd: testEnv.repoPath });
 
-    // 4. Complete release
+    // 4. Complete release (squashed)
     execSync('git checkout main', { cwd: testEnv.repoPath });
-    execSync(`git merge --no-ff ${releaseBranch} -m "Merge release 1.1.0"`, { cwd: testEnv.repoPath });
+    execSync(`git merge --squash ${releaseBranch}`, { cwd: testEnv.repoPath });
+    execSync('git commit -m "Merge release/1.1.0 into main (squashed)"', { cwd: testEnv.repoPath });
     execSync('git tag -a v1.1.0 -m "Version 1.1.0"', { cwd: testEnv.repoPath });
 
     // 5. Verify release content is on main
     expect(fs.existsSync(path.join(testEnv.repoPath, 'new-feature.txt'))).toBe(true);
     expect(fs.existsSync(path.join(testEnv.repoPath, 'bugfix.txt'))).toBe(true);
 
-    // 6. Merge back to develop
+    // 6. Merge back to develop (squashed)
     execSync('git checkout develop', { cwd: testEnv.repoPath });
-    execSync(`git merge --no-ff ${releaseBranch} -m "Merge release 1.1.0 to develop"`, { cwd: testEnv.repoPath });
+    execSync(`git merge --squash ${releaseBranch}`, { cwd: testEnv.repoPath });
+    execSync('git commit -m "Merge release/1.1.0 into develop (squashed)"', { cwd: testEnv.repoPath });
 
     // 7. Verify develop has all content
     expect(fs.existsSync(path.join(testEnv.repoPath, 'new-feature.txt'))).toBe(true);
     expect(fs.existsSync(path.join(testEnv.repoPath, 'bugfix.txt'))).toBe(true);
 
-    // 8. Clean up
-    execSync(`git branch -d ${releaseBranch}`, { cwd: testEnv.repoPath });
+    // 8. Clean up (force delete needed after squash merge)
+    execSync(`git branch -D ${releaseBranch}`, { cwd: testEnv.repoPath });
   });
 });

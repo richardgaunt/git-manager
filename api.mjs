@@ -392,10 +392,17 @@ export function getMainBranch() {
   }
 }
 
-export function mergeBranch(mergeBranch) {
+export function mergeBranch(mergeBranch, squash = false) {
   const currentBranch = getCurrentBranch();
   try {
-    execSync(`git merge --no-ff ${mergeBranch} -m "Merge ${mergeBranch} into ${currentBranch}"`);
+    if (squash) {
+      // Perform squash merge
+      execSync(`git merge --squash ${mergeBranch}`);
+      // Commit the squashed changes
+      execSync(`git commit -m "Merge ${mergeBranch} into ${currentBranch} (squashed)"`);
+    } else {
+      execSync(`git merge --no-ff ${mergeBranch} -m "Merge ${mergeBranch} into ${currentBranch}"`);
+    }
   } catch (e) {
     throw new Error(`Failed to merge ${mergeBranch} into ${currentBranch}: ${e.message}`);
   }
