@@ -19,7 +19,7 @@
     "lint:report": "eslint . --ext .mjs -f json -o eslint-report.json"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.5.1",
+    "@inquirer/prompts": "^7.5.3",
     "chalk": "^5.2.0",
     "commander": "^14.0.0"
   },
