@@ -446,12 +446,12 @@ export async function createHotfix() {
  *
  * @returns {Promise<string>}
  */
-async function listAndSelectTag() {
+async function listAndSelectTag(defaultTag) {
   const tags = (listTags()).slice(0, 3);
   console.log(chalk.yellow(`\nRecent tags: ${tags.join(', ')}`));
   return await input({
     message: 'Enter the release tag (e.g., 1.0.0):',
-    default: tags[0],
+    default: defaultTag,
     validate: input => !!input.trim() || 'Release tag is required'
   });
 }
@@ -574,11 +574,11 @@ async function doRelease(type) {
 
     // Handle tag creation and pushing
     if (createTagConfirm) {
-      const tag = await listAndSelectTag();
+      const tag = await listAndSelectTag(tagName);
       await createTag(tag);
       pushToRemote(mainBranch);
       pushToRemote('develop');
-      pushToRemote(tagName);
+      pushToRemote(tag);
     } else {
       pushToRemote(mainBranch);
       pushToRemote('develop');
