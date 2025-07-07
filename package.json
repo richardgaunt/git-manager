@@ -27,7 +27,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.29.0",
-    "@jest/globals": "^29.7.0",
+    "@jest/globals": "^30.0.4",
     "eslint": "^9.29.0",
     "eslint-plugin-n": "^17.20.0",
     "globals": "^16.2.0",
