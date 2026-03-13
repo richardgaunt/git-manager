@@ -30,7 +30,7 @@ export function registerCommands(program) {
     });
 
   program
-    .command('checkout-branch')
+    .command('checkout')
     .description('Checkout a branch')
     .action(async () => {
       await branches.checkoutBranchAndUpdate();
