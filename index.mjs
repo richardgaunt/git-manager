@@ -16,7 +16,7 @@ const program = new Command();
 
 // Set up program metadata
 program
-  .name('git-manager')
+  .name('gbm')
   .description('A CLI tool for managing git operations')
   .version('1.0.0');
 

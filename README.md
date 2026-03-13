@@ -68,7 +68,7 @@ vim ~/.zshrc
 
 2. Add the following line, replacing `<path_to_app>` with the absolute path to your git-manager directory:
 ```shell
-  alias git_manager="node <path_to_app>/index.js"
+  alias gbm="node <path_to_app>/index.mjs"
 ``` 
 
 3. Save and close the file
@@ -93,7 +93,7 @@ If you need to update Node.js, consider using a version manager like [nvm](https
 
 Simply run the alias without any arguments:
 ```shell
-git_manager
+gbm
 ``` 
 
 This will display the interactive menu that allows you to:
@@ -110,21 +110,21 @@ This will display the interactive menu that allows you to:
 You can also run specific commands directly:
 ```shell
 # List all branches
-git_manager branches
+gbm branches
 # Delete branches
-git_manager delete-branches
+gbm delete-branches
 # Create feature branch
-git_manager create-feature
+gbm create-feature
 # Create a release
-git_manager create-release
+gbm create-release
 # Finish a release
-git_manager finish-release
+gbm finish-release
 # Create hotfix branch
-git_manager create-hotfix
+gbm create-hotfix
 # Finish a hotfix branch
-git_manager finish-hotfix
+gbm finish-hotfix
 # Checkout and update a branch
-git_manager checkout
+gbm checkout
 ``` 
 
 ## Feature Branch Workflow

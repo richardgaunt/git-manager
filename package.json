@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.mjs",
   "bin": {
-    "git-manager": "./index.mjs"
+    "gbm": "./index.mjs"
   },
   "scripts": {
     "start": "node index.mjs",
