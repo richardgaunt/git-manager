@@ -932,20 +932,11 @@ export async function smartCommit() {
       return;
     }
 
-    console.log(chalk.green(`\nGenerated message: ${message}`));
-
-    const useMessage = await confirm({
-      message: 'Use this commit message?',
-      default: true
+    message = await input({
+      message: 'Commit message:',
+      default: message,
+      validate: val => !!val.trim() || 'Commit message is required'
     });
-
-    if (!useMessage) {
-      message = await input({
-        message: 'Enter your commit message:',
-        default: message,
-        validate: val => !!val.trim() || 'Commit message is required'
-      });
-    }
 
     execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { encoding: 'utf8' });
     console.log(chalk.green('\n✓ Committed successfully.'));
