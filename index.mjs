@@ -6,6 +6,31 @@ import chalk from 'chalk';
 import { isGitRepository } from './api.mjs';
 import { registerCommands, showInteractiveMenu } from './commands/index.mjs';
 
+// Handle Ctrl+C gracefully - exit silently
+function isUserExit(error) {
+  return error?.name === 'ExitPromptError' || error?.message?.includes('force closed');
+}
+
+function handleExit(error) {
+  if (isUserExit(error)) {
+    process.exit(0);
+  }
+  console.error(chalk.red(`Error: ${error.message}`));
+  process.exit(1);
+}
+
+process.on('uncaughtException', (error) => {
+  if (isUserExit(error)) process.exit(0);
+  console.error(chalk.red(`Error: ${error.message}`));
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (error) => {
+  if (isUserExit(error)) process.exit(0);
+  console.error(chalk.red(`Error: ${error.message}`));
+  process.exit(1);
+});
+
 // Check if current directory is a git repository
 if (!isGitRepository()) {
   console.error(chalk.red('Error: Not in a git repository'));
@@ -26,10 +51,7 @@ registerCommands(program);
 
 // If no command is provided, start in interactive mode
 if (process.argv.length <= 2) {
-  showInteractiveMenu().catch(error => {
-    console.error(chalk.red(`Error: ${error.message}`));
-    process.exit(1);
-  });
+  showInteractiveMenu().catch(handleExit);
 } else {
   program.parse(process.argv);
 }
