@@ -476,6 +476,52 @@ export function mergeFeatureBranch(featureBranch, commitMessage) {
 }
 
 /**
+ * Get unstaged and untracked files
+ * @returns {string[]} Array of file paths
+ */
+export function getUnstagedFiles() {
+  try {
+    const output = execSync('git status -s', { encoding: 'utf8' });
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .filter(line => !line.startsWith(' ') || line.startsWith('??') || line.startsWith(' M') || line.startsWith(' D') || line.startsWith('??'))
+      .map(line => line.trim().replace(/^[MADRCU?][MADRCU?]?\s+/, ''));
+  } catch (error) {
+    throw new Error('Failed to get unstaged files: ' + error.message);
+  }
+}
+
+/**
+ * Stage specified files
+ * @param {string[]} files Array of file paths to stage
+ */
+export function stageFiles(files) {
+  try {
+    const fileList = files.map(f => `"${f}"`).join(' ');
+    execSync(`git add ${fileList}`, { encoding: 'utf8' });
+  } catch (error) {
+    throw new Error('Failed to stage files: ' + error.message);
+  }
+}
+
+/**
+ * Get files with changes available for diffing
+ * @returns {string[]} Array of file paths
+ */
+export function getDiffFiles() {
+  try {
+    const output = execSync('git status -s', { encoding: 'utf8' });
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map(line => line.trim().replace(/^[MADRCU?][MADRCU?]?\s+/, ''));
+  } catch (error) {
+    throw new Error('Failed to get diff files: ' + error.message);
+  }
+}
+
+/**
  * Create a tag.
  *
  * @param tagName

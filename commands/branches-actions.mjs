@@ -2,6 +2,7 @@
 
 import { select, checkbox, confirm, input, search } from '@inquirer/prompts';
 import chalk from 'chalk';
+import { execSync } from 'child_process';
 import {
   getCurrentBranch,
   getLocalBranches,
@@ -26,7 +27,10 @@ import {
   getLatestCommits,
   cherryPickCommit,
   mergeFeatureBranch,
-  fetchBranchUpdates
+  fetchBranchUpdates,
+  getUnstagedFiles,
+  stageFiles,
+  getDiffFiles
 } from '../api.mjs';
 
 export async function listBranches() {
@@ -744,6 +748,213 @@ export async function cherryPickChanges() {
 /**
  * Merge a feature branch into the current branch
  */
+/**
+ * Start a new branch with standardized naming
+ */
+export async function newBranch() {
+  console.log(chalk.blue('\n=== Start New Branch ===\n'));
+
+  try {
+    const branchType = await select({
+      message: 'Branch type:',
+      choices: [
+        { name: 'Feature', value: 'feature' },
+        { name: 'Bugfix', value: 'bug' }
+      ],
+      default: 'feature'
+    });
+
+    const issueNumber = await input({
+      message: 'Issue number (leave empty if none):',
+    });
+
+    const description = await input({
+      message: 'Short description:',
+      validate: val => !!val.trim() || 'Description is required'
+    });
+
+    const kebabDescription = toKebabCase(description).toLowerCase();
+    const branchName = issueNumber.trim()
+      ? `${branchType}/${toKebabCase(issueNumber.trim())}-${kebabDescription}`
+      : `${branchType}/${kebabDescription}`;
+
+    // Stash changes if needed
+    const status = getStatus();
+    let changesStashed = false;
+    if (status.trim()) {
+      console.log(chalk.yellow('\nStashing current changes...'));
+      changesStashed = stashChanges('Auto stash before creating new branch');
+    }
+
+    console.log(chalk.yellow(`\nCreating branch: ${branchName}`));
+    createBranch(branchName);
+
+    if (changesStashed) {
+      console.log(chalk.yellow('\nApplying stashed changes...'));
+      applyStash();
+    }
+
+    console.log(chalk.green(`\n✓ Successfully created branch: ${branchName}`));
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Interactive git add - select files to stage
+ */
+export async function interactiveAdd() {
+  console.log(chalk.blue('\n=== Interactive Add ===\n'));
+
+  try {
+    const files = getUnstagedFiles();
+
+    if (files.length === 0) {
+      console.log(chalk.yellow('No unstaged files to add.'));
+      return;
+    }
+
+    const selectedFiles = await checkbox({
+      message: 'Select files to stage:',
+      choices: files.map(file => ({
+        name: file,
+        value: file
+      })),
+      pageSize: 20
+    });
+
+    if (selectedFiles.length === 0) {
+      console.log(chalk.yellow('No files selected.'));
+      return;
+    }
+
+    stageFiles(selectedFiles);
+    console.log(chalk.green(`\n✓ Staged ${selectedFiles.length} file(s)`));
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * Interactive git diff - select files to diff
+ */
+export async function interactiveDiff() {
+  console.log(chalk.blue('\n=== Interactive Diff ===\n'));
+
+  try {
+    const files = getDiffFiles();
+
+    if (files.length === 0) {
+      console.log(chalk.yellow('No files with changes to diff.'));
+      return;
+    }
+
+    const selectedFiles = await checkbox({
+      message: 'Select files to diff:',
+      choices: files.map(file => ({
+        name: file,
+        value: file
+      })),
+      pageSize: 20
+    });
+
+    if (selectedFiles.length === 0) {
+      console.log(chalk.yellow('No files selected.'));
+      return;
+    }
+
+    for (const file of selectedFiles) {
+      console.log(chalk.blue(`\n--- ${file} ---`));
+      try {
+        const diff = execSync(`git diff -- "${file}"`, { encoding: 'utf8' });
+        if (diff.trim()) {
+          console.log(diff);
+        } else {
+          // Try staged diff
+          const stagedDiff = execSync(`git diff --cached -- "${file}"`, { encoding: 'utf8' });
+          if (stagedDiff.trim()) {
+            console.log(stagedDiff);
+          } else {
+            console.log(chalk.dim('No diff available (new untracked file)'));
+          }
+        }
+      } catch (error) {
+        console.log(chalk.red(`Error diffing ${file}: ${error.message}`));
+      }
+    }
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
+/**
+ * AI-powered commit message generation using Claude CLI
+ */
+export async function smartCommit() {
+  console.log(chalk.blue('\n=== Smart Commit ===\n'));
+
+  try {
+    // Check for staged changes
+    const stagedDiff = execSync('git diff --cached', { encoding: 'utf8' });
+    if (!stagedDiff.trim()) {
+      console.log(chalk.yellow('No staged changes. Stage files with "gbm add" first.'));
+      return;
+    }
+
+    const status = execSync('git status --short', { encoding: 'utf8' });
+    const branch = getCurrentBranch();
+
+    console.log(chalk.yellow('Generating commit message with Claude...'));
+
+    const prompt = `Based on the following git diff, status, and branch name, write a concise commit message (1 sentence only, less than 128 characters) that focuses on the 'what' rather than the 'why'. Always use past tense. Do not use the word 'refactor' unless it is genuinely a refactoring task. If an issue number is identifiable in the branch name (e.g. JIRA-123, PROJ-45, #123), prefix the commit message with it in square brackets like [JIRA-123]. Output ONLY the commit message, nothing else.\n\nBranch:\n${branch}\n\nStatus:\n${status}\n\nDiff:\n${stagedDiff}`;
+
+    let message;
+    try {
+      message = execSync('claude -p --model sonnet', {
+        encoding: 'utf8',
+        input: prompt,
+        timeout: 30000
+      }).trim();
+    } catch (error) {
+      console.log(chalk.red('Failed to generate commit message with Claude.'));
+      console.log(chalk.yellow('Falling back to manual commit message.'));
+      message = await input({
+        message: 'Enter commit message:',
+        validate: val => !!val.trim() || 'Commit message is required'
+      });
+    }
+
+    if (!message) {
+      console.log(chalk.red('Failed to generate commit message.'));
+      return;
+    }
+
+    console.log(chalk.green(`\nGenerated message: ${message}`));
+
+    const useMessage = await confirm({
+      message: 'Use this commit message?',
+      default: true
+    });
+
+    if (!useMessage) {
+      message = await input({
+        message: 'Enter your commit message:',
+        default: message,
+        validate: val => !!val.trim() || 'Commit message is required'
+      });
+    }
+
+    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { encoding: 'utf8' });
+    console.log(chalk.green('\n✓ Committed successfully.'));
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    throw error;
+  }
+}
+
 export async function mergeFeatureBranchCommand() {
   console.log(chalk.blue('\n=== Merge Feature Branch ===\n'));
 

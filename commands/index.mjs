@@ -73,6 +73,26 @@ export function registerCommands(program) {
     .description('Merge a feature branch into the current branch')
     .action(branches.mergeFeatureBranchCommand);
 
+  program
+    .command('new')
+    .description('Start a new feature or bugfix branch')
+    .action(branches.newBranch);
+
+  program
+    .command('add')
+    .description('Interactive file staging')
+    .action(branches.interactiveAdd);
+
+  program
+    .command('diff')
+    .description('Interactive diff of changed files')
+    .action(branches.interactiveDiff);
+
+  program
+    .command('commit')
+    .description('AI-powered commit message generation')
+    .action(branches.smartCommit);
+
   return program;
 }
 
@@ -98,6 +118,10 @@ export async function showInteractiveMenu() {
     { name: 'Finish a hotfix', value: 'finish-hotfix' },
     { name: 'Cherry pick a commit', value: 'cherry-pick' },
     { name: 'Merge a feature branch', value: 'merge-feature' },
+    { name: 'Start a new branch', value: 'new' },
+    { name: 'Interactive add', value: 'add' },
+    { name: 'Interactive diff', value: 'diff' },
+    { name: 'Smart commit', value: 'commit' },
     { name: 'Exit', value: 'exit' }
   ];
 
@@ -143,6 +167,18 @@ export async function showInteractiveMenu() {
         break;
       case 'merge-feature':
         await commands.branches.mergeFeatureBranchCommand();
+        break;
+      case 'new':
+        await commands.branches.newBranch();
+        break;
+      case 'add':
+        await commands.branches.interactiveAdd();
+        break;
+      case 'diff':
+        await commands.branches.interactiveDiff();
+        break;
+      case 'commit':
+        await commands.branches.smartCommit();
         break;
       case 'exit':
         exitRequested = true;
