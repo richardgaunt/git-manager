@@ -298,6 +298,28 @@ export function getAllBranches() {
 }
 
 /**
+ * Get all branches (both local and remote) sorted by most recent commit
+ * @returns {string[]} Array of branch names sorted by committer date descending
+ */
+export function getAllBranchesByCommitDate() {
+  try {
+    const output = execSync(
+      'git for-each-ref --sort=-committerdate --format="%(refname:short)" refs/heads/ refs/remotes/origin/',
+      { encoding: 'utf8' }
+    );
+
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map(branch => branch.replace(/^origin\//, '').trim())
+      .filter(branch => !branch.includes('HEAD'))
+      .filter((branch, index, self) => self.indexOf(branch) === index);
+  } catch (error) {
+    throw new Error('Failed to get branches by commit date: ' + error.message);
+  }
+}
+
+/**
  * Pull latest changes from remote for current branch
  * @returns {string} Command output
  */

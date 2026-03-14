@@ -8,6 +8,7 @@ import {
   getLocalBranches,
   deleteLocalBranch,
   getAllBranches,
+  getAllBranchesByCommitDate,
   getStatus,
   checkoutBranch,
   checkIfRemoteBranchExists,
@@ -115,8 +116,8 @@ export async function checkoutBranchAndUpdate() {
     const currentBranch = getCurrentBranch();
     console.log(`Current branch: ${chalk.green(currentBranch)}\n`);
 
-    // Get all branches
-    const branches = getAllBranches()
+    // Get all branches sorted by most recent commit
+    const branches = getAllBranchesByCommitDate()
       .filter(branch => branch !== currentBranch); // Remove current branch from list
 
     if (branches.length === 0) {
