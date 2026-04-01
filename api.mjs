@@ -4,6 +4,21 @@ import { execSync } from 'child_process';
 import chalk from 'chalk';
 
 /**
+ * Sanitize a commit message by removing shell-unsafe and git-reserved characters.
+ * @param {string} msg - Raw commit message
+ * @returns {string} Sanitized commit message
+ */
+export function sanitizeCommitMessage(msg) {
+  return msg
+    .replace(/[\\`$!]/g, '')        // shell-dangerous characters
+    .replace(/[<>|;{}()]/g, '')     // redirects, pipes, subshells
+    .replace(/\//g, '-')            // forward slashes to dashes
+    .replace(/"/g, "'")             // double quotes to single quotes
+    .replace(/\s+/g, ' ')          // collapse whitespace
+    .trim();
+}
+
+/**
  * Check if the current directory is a Git repository
  * @returns {boolean} True if it's a Git repository
  */
@@ -474,7 +489,8 @@ export function mergeFeatureBranch(featureBranch, commitMessage) {
   try {
     // Merge the feature branch with the provided commit message
     // Using --no-ff to ensure a merge commit is created
-    execSync(`git merge --no-ff ${featureBranch} -m "${commitMessage}"`, { encoding: 'utf8' });
+    const safeMessage = sanitizeCommitMessage(commitMessage);
+    execSync(`git merge --no-ff ${featureBranch} -m "${safeMessage}"`, { encoding: 'utf8' });
 
     return {
       success: true,

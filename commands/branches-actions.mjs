@@ -3,6 +3,11 @@
 import { select, checkbox, confirm, input, search } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { execSync } from 'child_process';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dsfBin = join(__dirname, '..', 'node_modules', '.bin', 'diff-so-fancy');
 import {
   getCurrentBranch,
   getLocalBranches,
@@ -31,7 +36,8 @@ import {
   fetchBranchUpdates,
   getUnstagedFiles,
   stageFiles,
-  getDiffFiles
+  getDiffFiles,
+  sanitizeCommitMessage
 } from '../api.mjs';
 
 export async function listBranches() {
@@ -869,12 +875,12 @@ export async function interactiveDiff() {
     for (const file of selectedFiles) {
       console.log(chalk.blue(`\n--- ${file} ---`));
       try {
-        const diff = execSync(`git diff -- "${file}"`, { encoding: 'utf8' });
+        const diff = execSync(`git diff --color=always -- "${file}" | "${dsfBin}"`, { encoding: 'utf8', shell: true });
         if (diff.trim()) {
           console.log(diff);
         } else {
           // Try staged diff
-          const stagedDiff = execSync(`git diff --cached -- "${file}"`, { encoding: 'utf8' });
+          const stagedDiff = execSync(`git diff --color=always --cached -- "${file}" | "${dsfBin}"`, { encoding: 'utf8', shell: true });
           if (stagedDiff.trim()) {
             console.log(stagedDiff);
           } else {
@@ -939,7 +945,8 @@ export async function smartCommit() {
       validate: val => !!val.trim() || 'Commit message is required'
     });
 
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { encoding: 'utf8' });
+    message = sanitizeCommitMessage(message);
+    execSync(`git commit -m "${message}"`, { encoding: 'utf8' });
     console.log(chalk.green('\n✓ Committed successfully.'));
   } catch (error) {
     console.error(chalk.red(`\n✗ Error: ${error.message}`));
